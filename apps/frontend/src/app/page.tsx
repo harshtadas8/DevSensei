@@ -11,7 +11,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
   const [svg, setSvg] = useState<string>("");
 
   useEffect(() => {
-    mermaid.initialize({ startOnLoad: false, theme: "dark", background: "transparent" });
+    mermaid.initialize({ startOnLoad: false, theme: "dark" });
     const id = `mermaid-${Math.random().toString(36).substring(7)}`;
     mermaid.render(id, chart).then((res) => setSvg(res.svg)).catch(console.error);
   }, [chart]);
