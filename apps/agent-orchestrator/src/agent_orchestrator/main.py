@@ -38,7 +38,18 @@ async def analyze_code(request: AnalysisRequest):
         yield f"data: {json.dumps({'stage': 'parse', 'log': 'Extracting AST with tree-sitter and generating embeddings for ChromaDB...'})}\n\n"
         
         try:
-            num_chunks = await asyncio.to_thread(index_repository, request.repo_path)
+            repo_path = request.repo_path
+            # If the user pasted a GitHub URL in the frontend, clone it temporarily!
+            if repo_path.startswith("http://") or repo_path.startswith("https://"):
+                import subprocess
+                from urllib.parse import urlparse
+                repo_name = urlparse(repo_path).path.strip('/')
+                clone_dir = f"/tmp/{repo_name.replace('/', '_')}_manual"
+                subprocess.run(["rm", "-rf", clone_dir], capture_output=True)
+                subprocess.run(["git", "clone", repo_path, clone_dir], check=True)
+                repo_path = clone_dir
+            
+            num_chunks = await asyncio.to_thread(index_repository, repo_path)
             if num_chunks == 0:
                 yield f"data: {json.dumps({'stage': 'complete', 'results': {'status': 'error', 'final_report': 'No supported code files found in this repository to analyze.'}})}\n\n"
                 return
@@ -60,7 +71,7 @@ async def analyze_code(request: AnalysisRequest):
         # Initialize the graph state
         initial_state = {
             "messages": [HumanMessage(content=f"Here is the codebase context retrieved from ChromaDB for you to analyze:\n\n```python\n{sample_code}\n```")],
-            "repo_path": request.repo_path,
+            "repo_path": repo_path,
             "pr_number": request.pr_number,
             "current_agent": "system",
             "reviewer_notes": "",
