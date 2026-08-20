@@ -178,11 +178,26 @@ async def process_pull_request(pr_number: int, repo_full_name: str, clone_url: s
     
     final_state = devsensei_graph.invoke(initial_state)
     
-    # 3. Output the result to logs (since posting back to GitHub requires auth tokens we don't have)
+    # 3. Post the result back to the GitHub PR!
     logger.info("pr_analysis_complete", pr=pr_number)
-    print("\n\n=== DEVSENSEI AI PR REVIEW REPORT ===\n")
-    print(final_state.get('final_report', 'No report generated.'))
-    print("\n=====================================\n")
+    final_report = final_state.get('final_report', 'No report generated.')
+    
+    github_token = os.environ.get("GITHUB_TOKEN")
+    if github_token:
+        from github import Github
+        try:
+            g = Github(github_token)
+            repo = g.get_repo(repo_full_name)
+            pr = repo.get_pull(pr_number)
+            pr.create_issue_comment(f"## 🤖 DevSensei AI PR Review\n\n{final_report}")
+            logger.info("posted_github_comment_success", pr=pr_number)
+        except Exception as e:
+            logger.error("github_post_failed", error=str(e))
+    else:
+        print("\n\n=== DEVSENSEI AI PR REVIEW REPORT ===\n")
+        print(final_report)
+        print("\n=====================================\n")
+        logger.warning("GITHUB_TOKEN_not_set_printing_to_console")
 
 @app.post("/api/github/webhook")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks):
