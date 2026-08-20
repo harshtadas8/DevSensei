@@ -6,13 +6,8 @@ import hashlib
 from urllib.parse import urlparse
 from chromadb.api.types import Documents, EmbeddingFunction, Embeddings
 
-# Connect to ChromaDB
-chroma_url = os.environ.get("CHROMA_DB_URL", "http://localhost:8000")
-parsed_url = urlparse(chroma_url)
-CHROMA_HOST = parsed_url.hostname or "localhost"
-CHROMA_PORT = parsed_url.port or 8000
-
-client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT, settings=Settings(allow_reset=True))
+# Connect to ChromaDB in Embedded Mode (No separate server needed)
+client = chromadb.PersistentClient(path="./chroma_data", settings=Settings(allow_reset=True))
 
 def get_or_create_collection(name="devsensei_codebase"):
     return client.get_or_create_collection(name=name)
