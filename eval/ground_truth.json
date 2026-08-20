@@ -1,0 +1,21 @@
+{
+  "pr_1_sql_injection.patch": [
+    {
+      "file": "src/db.py",
+      "line": 13,
+      "severity": "high",
+      "category": "security",
+      "message": "Raw user input passed into SQL query via f-string (SQL Injection)."
+    }
+  ],
+  "pr_2_clean.patch": [],
+  "pr_3_n_plus_one.patch": [
+    {
+      "file": "src/views.py",
+      "line": 9,
+      "severity": "medium",
+      "category": "performance",
+      "message": "N+1 query pattern: DB query inside a loop."
+    }
+  ]
+}

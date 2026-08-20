@@ -1,0 +1,27 @@
+name: "DevSensei Enterprise Guardrails"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  evaluate-ai-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          pip install langchain langchain_core pydantic
+
+      - name: Run Eval Scorer
+        run: |
+          python eval/scorer.py

@@ -1,0 +1,29 @@
+[project]
+name = "agent-orchestrator"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "harshtadas8", email = "harshtadas8@gmail.com" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "chromadb>=1.5.9",
+    "fastapi>=0.141.1",
+    "langchain-core>=1.6.0",
+    "langchain-google-genai>=4.3.4",
+    "langchain-groq>=1.1.3",
+    "langgraph>=1.2.11",
+    "mcp>=2.0.0",
+    "structlog>=26.1.0",
+    "tree-sitter>=0.26.0",
+    "tree-sitter-python>=0.25.0",
+    "uvicorn>=0.52.4",
+]
+
+[project.scripts]
+agent-orchestrator = "agent_orchestrator:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"

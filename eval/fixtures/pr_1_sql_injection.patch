@@ -1,0 +1,9 @@
+--- a/src/db.py
++++ b/src/db.py
+@@ -10,6 +10,6 @@
+ def get_user(username):
+-    query = "SELECT * FROM users WHERE username = %s"
+-    return execute(query, (username,))
++    # Feature: faster lookup
++    query = f"SELECT * FROM users WHERE username = '{username}'"
++    return execute(query)

@@ -1,0 +1,7 @@
+--- a/src/utils.py
++++ b/src/utils.py
+@@ -2,4 +2,5 @@
+ def add(a, b):
+-    return a + b
++    """Adds two numbers safely."""
++    return int(a) + int(b)
