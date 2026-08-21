@@ -40,13 +40,19 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code">("review");
 
-  const loadFile = async (path: string) => {
+  const loadFile = async (fileName: string) => {
     setActiveTab("code");
-    setViewerPath(path);
+    setViewerPath(fileName);
     setViewerLoading(true);
     try {
       // Clean path if it has backticks
-      const cleanPath = path.replace(/`/g, "").trim();
+      let cleanPath = fileName.replace(/`/g, "").trim();
+      // If we have a repo_path in results, we need to fetch the file from that directory!
+      const basePath = results?.repo_path;
+      if (basePath && !cleanPath.startsWith(basePath)) {
+          cleanPath = `${basePath}/${cleanPath}`;
+      }
+
       const res = await fetch(`http://localhost:8000/file?path=${encodeURIComponent(cleanPath)}`);
       if (!res.ok) throw new Error("File not found or access denied");
       const data = await res.json();
@@ -299,26 +305,49 @@ export default function Home() {
               <div className="flex-1 p-8 overflow-y-auto">
                 <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
                   {activeTab === "code" ? (
-                     <div className="bg-[#0d1117] rounded-xl border border-slate-700/50 shadow-inner h-full flex flex-col overflow-hidden">
-                       <div className="bg-slate-900/80 px-4 py-2 border-b border-slate-800 flex items-center">
-                         <div className="flex space-x-2 mr-4">
-                           <div className="w-3 h-3 rounded-full bg-slate-700" />
-                           <div className="w-3 h-3 rounded-full bg-slate-700" />
-                           <div className="w-3 h-3 rounded-full bg-slate-700" />
-                         </div>
-                         <p className="text-teal-500 font-mono text-xs">{viewerPath || "No file selected"}</p>
-                       </div>
-                       <div className="p-4 overflow-y-auto flex-1 font-mono text-sm text-slate-300">
-                         {viewerLoading ? (
-                           <div className="flex items-center text-slate-500 h-full justify-center"><div className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin mr-3" /> Loading file source...</div>
-                         ) : viewerContent ? (
-                           <pre className="whitespace-pre-wrap">{viewerContent}</pre>
-                         ) : (
-                           <div className="h-full flex flex-col items-center justify-center text-slate-600">
-                             <Terminal className="w-12 h-12 mb-4 opacity-20" />
-                             <p>Click any cited file path in the chat to view its source code.</p>
+                     <div className="bg-[#0d1117] rounded-xl border border-slate-700/50 shadow-inner h-full flex overflow-hidden">
+                       {/* FILE EXPLORER SIDEBAR */}
+                       {results.files && results.files.length > 0 && (
+                         <div className="w-48 bg-[#010409]/50 border-r border-slate-800 flex flex-col">
+                           <div className="px-4 py-2 border-b border-slate-800 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                             Explorer
                            </div>
-                         )}
+                           <div className="flex-1 overflow-y-auto py-2">
+                             {results.files.map((file: string) => (
+                               <button 
+                                 key={file}
+                                 onClick={() => loadFile(file)}
+                                 className={`w-full text-left px-4 py-1.5 text-xs font-mono truncate transition-colors ${viewerPath === file ? "bg-teal-500/10 text-teal-400 border-l-2 border-teal-500" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-2 border-transparent"}`}
+                               >
+                                 {file.split('/').pop()}
+                               </button>
+                             ))}
+                           </div>
+                         </div>
+                       )}
+
+                       {/* CODE EDITOR PANE */}
+                       <div className="flex-1 flex flex-col min-w-0">
+                         <div className="bg-slate-900/80 px-4 py-2 border-b border-slate-800 flex items-center shrink-0">
+                           <div className="flex space-x-2 mr-4">
+                             <div className="w-3 h-3 rounded-full bg-slate-700" />
+                             <div className="w-3 h-3 rounded-full bg-slate-700" />
+                             <div className="w-3 h-3 rounded-full bg-slate-700" />
+                           </div>
+                           <p className="text-teal-500 font-mono text-xs truncate">{viewerPath || "No file selected"}</p>
+                         </div>
+                         <div className="p-4 overflow-y-auto flex-1 font-mono text-sm text-slate-300">
+                           {viewerLoading ? (
+                             <div className="flex items-center text-slate-500 h-full justify-center"><div className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin mr-3" /> Loading file source...</div>
+                           ) : viewerContent ? (
+                             <pre className="whitespace-pre-wrap">{viewerContent}</pre>
+                           ) : (
+                             <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                               <Terminal className="w-12 h-12 mb-4 opacity-20" />
+                               <p>Select a file from the explorer or click a cited file path in the chat.</p>
+                             </div>
+                           )}
+                         </div>
                        </div>
                      </div>
                   ) : (

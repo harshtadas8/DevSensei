@@ -84,12 +84,26 @@ async def analyze_code(request: AnalysisRequest):
         final_state = devsensei_graph.invoke(initial_state)
         
         # Send final results
+        # Build file list for the Code Viewer
+        repo_files = []
+        for root, dirs, files in os.walk(repo_path):
+            # Skip hidden dirs like .git
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+            for file in files:
+                if file.endswith(('.py', '.js', '.ts', '.tsx', '.jsx', '.html', '.css', '.json', '.yml', '.yaml', '.md')):
+                    # Store relative path
+                    rel_path = os.path.relpath(os.path.join(root, file), repo_path)
+                    # Use forward slashes for cross-platform compatibility in the UI
+                    repo_files.append(rel_path.replace("\\", "/"))
+
         results_data = {
             'status': 'success',
             'reviewer_notes': final_state.get('reviewer_notes'),
             'architect_notes': final_state.get('architect_notes'),
             'tester_notes': final_state.get('tester_notes'),
-            'final_report': final_state.get('final_report')
+            'final_report': final_state.get('final_report'),
+            'repo_path': repo_path,
+            'files': sorted(repo_files)
         }
         yield f"data: {json.dumps({'stage': 'complete', 'results': results_data})}\n\n"
 
