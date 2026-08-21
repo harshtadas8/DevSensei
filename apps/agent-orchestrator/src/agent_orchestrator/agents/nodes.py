@@ -196,10 +196,10 @@ def coder_node(state: AgentState):
     if repo_path.startswith("/tmp/"):
         apply_search_replace(repo_path, llm_output)
         
-        # Run git diff to show what changed
+        # Run git diff to show what changed, ignoring line-ending differences
         import subprocess
         try:
-            result = subprocess.run(["git", "diff"], cwd=repo_path, capture_output=True, text=True)
+            result = subprocess.run(["git", "diff", "--ignore-space-at-eol", "--ignore-blank-lines"], cwd=repo_path, capture_output=True, text=True)
             diff_output = result.stdout
             
             if not diff_output:
