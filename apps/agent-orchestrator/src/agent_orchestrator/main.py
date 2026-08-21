@@ -131,6 +131,64 @@ async def get_file_content(path: str):
 
 # --- Phase 5: GitHub Integration & Automation Layer ---
 
+class ChatRequest(BaseModel):
+    query: str
+    repo_path: str
+
+@app.post("/chat")
+async def chat_with_repo(request: ChatRequest):
+    """
+    Phase 9 (Option B): Interactive Chat Interface
+    Answers user questions about the repository using RAG.
+    """
+    logger.info("chat_query_received", query=request.query)
+    
+    try:
+        from .ingestion.indexer import retrieve_context
+        # Retrieve the most relevant 3 chunks from ChromaDB
+        context = await asyncio.to_thread(retrieve_context, request.query, 3)
+        
+        if not context.strip():
+            context = "No relevant code found in the repository."
+
+        from langchain_groq import ChatGroq
+        from langchain_core.messages import SystemMessage, HumanMessage
+        
+        # Initialize Groq for the chat
+        chat_model = ChatGroq(
+            temperature=0.3,
+            model="llama3-8b-8192",
+            max_retries=3,
+        )
+        
+        system_prompt = (
+            "You are an expert AI pair programmer named DevSensei.\n"
+            "You are helping a developer understand and modify their code.\n"
+            "Below is the relevant code from their repository based on their question.\n"
+            "Read it carefully and provide a helpful, concise, and accurate answer.\n"
+            "If they ask you to write code, provide the exact code block.\n\n"
+            "=== RETRIEVED REPOSITORY CONTEXT ===\n"
+            f"{context}\n"
+            "===================================\n"
+        )
+        
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=request.query)
+        ]
+        
+        response = await chat_model.ainvoke(messages)
+        
+        return {
+            "status": "success",
+            "answer": response.content,
+            "retrieved_context": context
+        }
+        
+    except Exception as e:
+        logger.error("chat_error", error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
 import hmac
 import hashlib
 import os
