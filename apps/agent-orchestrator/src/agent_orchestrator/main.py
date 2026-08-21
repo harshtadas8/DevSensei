@@ -151,15 +151,11 @@ async def chat_with_repo(request: ChatRequest):
         if not context.strip():
             context = "No relevant code found in the repository."
 
-        from langchain_groq import ChatGroq
+        from .agents.nodes import get_llm
         from langchain_core.messages import SystemMessage, HumanMessage
         
-        # Initialize Groq for the chat
-        chat_model = ChatGroq(
-            temperature=0.3,
-            model="llama3-8b-8192",
-            max_retries=3,
-        )
+        # Initialize the global LLM configured for the project (Groq / Gemini)
+        chat_model = get_llm()
         
         system_prompt = (
             "You are an expert AI pair programmer named DevSensei.\n"
