@@ -53,7 +53,7 @@ export default function Home() {
           cleanPath = `${basePath}/${cleanPath}`;
       }
 
-      const res = await fetch(`http://localhost:8000/file?path=${encodeURIComponent(cleanPath)}`);
+      const res = await fetch(`/api/file?path=${encodeURIComponent(cleanPath)}`);
       if (!res.ok) throw new Error("File not found or access denied");
       const data = await res.json();
       setViewerContent(data.content);
