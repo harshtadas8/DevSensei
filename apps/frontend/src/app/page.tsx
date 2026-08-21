@@ -18,7 +18,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 
   return (
     <div 
-      className="flex justify-center p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 my-4 shadow-inner"
+      className="flex justify-center p-4 bg-slate-900/50 rounded-lg border border-slate-700/50 my-4 shadow-inner overflow-x-auto [&>svg]:max-w-full [&>svg]:h-auto"
       dangerouslySetInnerHTML={{ __html: svg }} 
     />
   );
