@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Terminal, Code, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X } from "lucide-react";
+import { Terminal, Code, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X, Menu } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
@@ -36,6 +36,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code">("review");
   const [leftWidth, setLeftWidth] = useState(40); // 40% default for left pane
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(true);
   const isDragging = useRef(false);
 
   useEffect(() => {
@@ -160,24 +161,33 @@ export default function Home() {
     <div className="flex h-screen bg-[#0d1117] text-slate-300 font-sans overflow-hidden selection:bg-teal-500/30">
       
       {/* SIDEBAR */}
-      <div className="w-64 bg-[#010409] border-r border-slate-800 flex flex-col shadow-2xl z-10">
-        <div className="h-16 flex items-center px-6 border-b border-slate-800">
-          <Terminal className="w-6 h-6 text-teal-400 mr-3" />
-          <h1 className="text-xl font-bold text-white tracking-tight">DevSensei</h1>
+      {isMainSidebarOpen && (
+        <div className="w-64 bg-[#010409] border-r border-slate-800 flex flex-col shadow-2xl z-20 shrink-0">
+          <div className="h-16 flex items-center px-6 border-b border-slate-800">
+            <Terminal className="w-6 h-6 text-teal-400 mr-3 shrink-0" />
+            <h1 className="text-xl font-bold text-white tracking-tight">DevSensei</h1>
+          </div>
+          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+            <button className="w-full flex items-center px-4 py-3 bg-teal-500/10 text-teal-400 rounded-lg font-medium border border-teal-500/20 shadow-inner">
+              <LayoutTemplate className="w-5 h-5 mr-3" />
+              Onboarder
+            </button>
+            <button onClick={() => setShowPrModal(true)} className="w-full flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors group">
+              <GitBranch className="w-5 h-5 mr-3 group-hover:text-teal-400 transition-colors" />
+              PR Bot Config
+            </button>
+          </nav>
+          <div className="p-4 border-t border-slate-800 flex items-center">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-teal-500 to-blue-500 flex items-center justify-center text-white font-bold text-sm shadow-lg mr-3">
+              N
+            </div>
+            <div className="flex-1">
+              <p className="text-xs text-slate-400 font-medium">DevSensei v0.6.0</p>
+            </div>
+            <Settings className="w-4 h-4 text-slate-500 hover:text-white cursor-pointer transition-colors" />
+          </div>
         </div>
-        <nav className="flex-1 p-4 space-y-2">
-          <button className="w-full flex items-center px-4 py-3 bg-teal-500/10 text-teal-400 rounded-lg font-medium border border-teal-500/20 transition-all">
-            <LayoutTemplate className="w-4 h-4 mr-3" /> Onboarder
-          </button>
-          <button onClick={() => setShowPrModal(true)} className="w-full flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800/50 hover:text-white rounded-lg transition-all">
-            <GitBranch className="w-4 h-4 mr-3" /> PR Bot Config
-          </button>
-        </nav>
-        <div className="p-4 border-t border-slate-800 text-xs text-slate-500 flex items-center justify-between">
-          <span>DevSensei v0.6.0</span>
-          <Settings className="w-4 h-4 cursor-pointer hover:text-slate-300 transition-colors" />
-        </div>
-      </div>
+      )}
 
       {/* PR CONFIG MODAL */}
       {showPrModal && (
@@ -213,6 +223,13 @@ export default function Home() {
         {/* HEADER */}
         <header className="h-16 border-b border-slate-800 bg-[#0d1117]/80 backdrop-blur-sm flex items-center justify-between px-6 z-10">
           <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setIsMainSidebarOpen(!isMainSidebarOpen)}
+              className="mr-3 p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
+              title={isMainSidebarOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
             <span className="text-sm text-slate-500 font-mono">TARGET_REPO</span>
             <input
               type="text"
