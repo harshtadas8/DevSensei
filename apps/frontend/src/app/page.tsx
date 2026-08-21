@@ -560,7 +560,7 @@ export default function Home() {
                           {activeTab === "synthesizer" && (
                             <div className="mb-8 p-6 bg-slate-900/50 border border-slate-800 rounded-xl shadow-inner flex flex-col sm:flex-row items-center justify-between not-prose">
                               <div className="mb-4 sm:mb-0">
-                                <h4 className="text-lg font-bold text-white flex items-center"><Play className="w-5 h-5 mr-2 text-teal-400" /> Option C: Auto-Fix Magic</h4>
+                                <h4 className="text-lg font-bold text-white flex items-center"><Play className="w-5 h-5 mr-2 text-teal-400" /> Auto-Fix Magic</h4>
                                 <p className="text-sm text-slate-400 mt-1">Let the DevSensei Coder Agent rewrite your code to fix these issues automatically.</p>
                               </div>
                               <button 
