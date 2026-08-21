@@ -200,25 +200,26 @@ export default function Home() {
         {/* WORKSPACE AREA */}
         {loading && !results ? (
           /* SSE PROGRESS STREAM */
-          <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
-            <div className="w-full max-w-2xl bg-[#010409] border border-slate-800 rounded-xl shadow-2xl overflow-hidden flex flex-col h-96">
-              <div className="bg-slate-900 border-b border-slate-800 p-4 flex items-center">
+          <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden relative">
+            <div className="absolute inset-0 bg-teal-900/5 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-teal-900/20 via-[#0d1117] to-[#0d1117]" />
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="w-full max-w-2xl bg-[#010409]/80 backdrop-blur-md border border-slate-700/50 rounded-xl shadow-2xl shadow-teal-900/20 overflow-hidden flex flex-col h-96 z-10">
+              <div className="bg-slate-900/80 border-b border-slate-700/50 p-4 flex items-center">
                  <Activity className="w-5 h-5 text-teal-400 mr-3 animate-pulse" />
                  <h3 className="font-semibold text-slate-200">Real-time Ingestion Pipeline</h3>
               </div>
               <div className="p-6 flex-1 overflow-y-auto space-y-3 font-mono text-sm">
                 {logs.map((log, i) => (
                   <motion.div 
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    key={i} className="flex items-start text-teal-400/80"
+                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
+                    key={i} className="flex items-start text-teal-400/90"
                   >
-                    <span className="mr-3 opacity-50">[{new Date().toLocaleTimeString().split(' ')[0]}]</span>
-                    {log}
+                    <span className="mr-3 opacity-40 shrink-0">[{new Date().toLocaleTimeString().split(' ')[0]}]</span>
+                    <span>{log}</span>
                   </motion.div>
                 ))}
                 <div ref={(el) => el?.scrollIntoView({ behavior: 'smooth' })} />
               </div>
-            </div>
+            </motion.div>
           </div>
         ) : results ? (
           /* SPLIT PANE RESULTS */
@@ -226,11 +227,13 @@ export default function Home() {
             {/* LEFT PANE: DIAGRAM (Architect) */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              className="w-1/2 border-r border-slate-800 p-6 overflow-y-auto bg-gradient-to-br from-[#0d1117] to-[#010409]"
+              className="w-1/2 border-r border-slate-800 p-8 overflow-y-auto bg-[#0d1117]"
             >
-              <div className="flex items-center space-x-2 mb-6 text-teal-400">
-                <Database className="w-5 h-5" />
-                <h2 className="text-lg font-semibold text-white">System Architecture</h2>
+              <div className="flex items-center space-x-3 mb-8">
+                <div className="p-2 bg-teal-500/10 rounded-lg">
+                  <Database className="w-5 h-5 text-teal-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white tracking-tight">System Architecture</h2>
               </div>
               <div className="prose prose-invert max-w-none prose-pre:bg-transparent prose-pre:p-0">
                 <ReactMarkdown
@@ -243,6 +246,15 @@ export default function Home() {
                       }
                       return <code className={className} {...props}>{children}</code>;
                     },
+                    table({ children, ...props }: any) {
+                      return <div className="overflow-x-auto w-full my-6 ring-1 ring-slate-800 rounded-lg bg-[#010409]"><table className="w-full text-left border-collapse" {...props}>{children}</table></div>;
+                    },
+                    th({ children, ...props }: any) {
+                      return <th className="px-4 py-3 border-b border-slate-700 bg-slate-900/50 text-slate-300 font-medium text-sm whitespace-nowrap" {...props}>{children}</th>;
+                    },
+                    td({ children, ...props }: any) {
+                      return <td className="px-4 py-3 border-b border-slate-800/50 text-slate-400 text-sm align-top" {...props}>{children}</td>;
+                    }
                   }}
                 >
                   {results.architect_notes}
@@ -253,51 +265,61 @@ export default function Home() {
             {/* RIGHT PANE: ANALYSIS / CHAT */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              className="w-1/2 flex flex-col bg-[#0d1117]"
+              className="w-1/2 flex flex-col bg-[#010409]"
             >
               {/* Tabs */}
-              <div className="flex border-b border-slate-800 px-6 pt-4 space-x-6 bg-[#010409]">
+              <div className="flex px-2 pt-2 space-x-1 bg-[#010409] border-b border-slate-800">
                 <button 
                   onClick={() => setActiveTab("review")}
-                  className={`pb-3 font-medium text-sm flex items-center transition-all ${activeTab === "review" ? "text-teal-400 border-b-2 border-teal-400" : "text-slate-500 hover:text-slate-300"}`}
+                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "review" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
                 >
                   <ShieldCheck className="w-4 h-4 mr-2" /> Security Review
                 </button>
                 <button 
                   onClick={() => setActiveTab("test")}
-                  className={`pb-3 font-medium text-sm flex items-center transition-all ${activeTab === "test" ? "text-teal-400 border-b-2 border-teal-400" : "text-slate-500 hover:text-slate-300"}`}
+                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "test" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
                 >
                   <Bug className="w-4 h-4 mr-2" /> Test Coverage
                 </button>
                 <button 
                   onClick={() => setActiveTab("chat")}
-                  className={`pb-3 font-medium text-sm flex items-center transition-all ${activeTab === "chat" ? "text-teal-400 border-b-2 border-teal-400" : "text-slate-500 hover:text-slate-300"}`}
+                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "chat" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
                 >
                   <Code className="w-4 h-4 mr-2" /> Synthesizer
                 </button>
                 <button 
                   onClick={() => setActiveTab("code")}
-                  className={`pb-3 font-medium text-sm flex items-center transition-all ${activeTab === "code" ? "text-teal-400 border-b-2 border-teal-400" : "text-slate-500 hover:text-slate-300"}`}
+                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "code" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
                 >
                   <Terminal className="w-4 h-4 mr-2" /> Code Viewer
                 </button>
               </div>
 
               {/* Tab Content */}
-              <div className="flex-1 p-6 overflow-y-auto">
-                <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-200 prose-a:text-teal-400">
+              <div className="flex-1 p-8 overflow-y-auto">
+                <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
                   {activeTab === "code" ? (
-                     <div className="p-4 bg-[#010409] rounded-lg border border-slate-800 font-mono text-sm text-slate-300 h-full overflow-y-auto">
-                       <p className="text-teal-500 mb-4 font-bold">// Code Viewer: {viewerPath || "No file selected"}</p>
-                       {viewerLoading ? (
-                         <div className="flex items-center text-slate-500"><div className="w-4 h-4 border-2 border-slate-500 border-t-transparent rounded-full animate-spin mr-2" /> Loading file...</div>
-                       ) : viewerContent ? (
-                         <pre className="whitespace-pre-wrap">{viewerContent}</pre>
-                       ) : (
-                         <div>
-                           <p className="mb-2 text-slate-500">Clicking a cited file path in the chat will automatically load the file contents here.</p>
+                     <div className="bg-[#0d1117] rounded-xl border border-slate-700/50 shadow-inner h-full flex flex-col overflow-hidden">
+                       <div className="bg-slate-900/80 px-4 py-2 border-b border-slate-800 flex items-center">
+                         <div className="flex space-x-2 mr-4">
+                           <div className="w-3 h-3 rounded-full bg-slate-700" />
+                           <div className="w-3 h-3 rounded-full bg-slate-700" />
+                           <div className="w-3 h-3 rounded-full bg-slate-700" />
                          </div>
-                       )}
+                         <p className="text-teal-500 font-mono text-xs">{viewerPath || "No file selected"}</p>
+                       </div>
+                       <div className="p-4 overflow-y-auto flex-1 font-mono text-sm text-slate-300">
+                         {viewerLoading ? (
+                           <div className="flex items-center text-slate-500 h-full justify-center"><div className="w-5 h-5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin mr-3" /> Loading file source...</div>
+                         ) : viewerContent ? (
+                           <pre className="whitespace-pre-wrap">{viewerContent}</pre>
+                         ) : (
+                           <div className="h-full flex flex-col items-center justify-center text-slate-600">
+                             <Terminal className="w-12 h-12 mb-4 opacity-20" />
+                             <p>Click any cited file path in the chat to view its source code.</p>
+                           </div>
+                         )}
+                       </div>
                      </div>
                   ) : (
                     <ReactMarkdown 
@@ -305,19 +327,28 @@ export default function Home() {
                       components={{
                         code({ node, inline, className, children, ...props }: any) {
                           const text = String(children);
-                          if (inline && (text.includes('/') || text.endsWith('.py') || text.endsWith('.ts') || text.endsWith('.json') || text.endsWith('.yml'))) {
+                          if (inline && (text.includes('/') || text.endsWith('.py') || text.endsWith('.ts') || text.endsWith('.json') || text.endsWith('.yml') || text.endsWith('.js') || text.endsWith('.css') || text.endsWith('.html'))) {
                             return (
                               <code 
                                 {...props} 
                                 onClick={() => loadFile(text)}
-                                className="cursor-pointer text-teal-300 hover:text-teal-100 underline decoration-dashed decoration-teal-700 bg-teal-950/30 px-1 py-0.5 rounded transition-colors"
+                                className="cursor-pointer text-teal-300 hover:text-white hover:bg-teal-900/50 underline decoration-dashed decoration-teal-700/50 bg-teal-950/30 px-1.5 py-0.5 rounded transition-all duration-200"
                                 title={`View ${text} in Code Viewer`}
                               >
                                 {children}
                               </code>
                             );
                           }
-                          return <code className={className} {...props}>{children}</code>;
+                          return <code className={`${className} bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-300`} {...props}>{children}</code>;
+                        },
+                        table({ children, ...props }: any) {
+                          return <div className="overflow-x-auto w-full my-6 ring-1 ring-slate-800 rounded-lg bg-[#0d1117] shadow-xl"><table className="w-full text-left border-collapse" {...props}>{children}</table></div>;
+                        },
+                        th({ children, ...props }: any) {
+                          return <th className="px-4 py-3 border-b border-slate-700 bg-slate-900/80 text-slate-200 font-medium text-sm whitespace-nowrap" {...props}>{children}</th>;
+                        },
+                        td({ children, ...props }: any) {
+                          return <td className="px-4 py-3 border-b border-slate-800/50 text-slate-400 text-sm align-top leading-relaxed" {...props}>{children}</td>;
                         }
                       }}
                     >
@@ -332,14 +363,29 @@ export default function Home() {
           </div>
         ) : (
           /* EMPTY STATE */
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
-            <div className="w-24 h-24 mb-6 rounded-full bg-slate-800/30 flex items-center justify-center shadow-inner border border-slate-700/30">
-              <Code className="w-10 h-10 text-slate-600" />
-            </div>
-            <h2 className="text-xl font-medium text-slate-300 mb-2">DevSensei is ready</h2>
-            <p className="text-sm max-w-md text-center leading-relaxed mt-2">
-              Enter a repository path above and click <strong className="text-slate-400">Start Ingestion</strong> to generate the live Mermaid architecture graph and deep PR analysis.
-            </p>
+          <div className="flex-1 flex flex-col items-center justify-center relative overflow-hidden">
+            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-5 mix-blend-overlay" />
+            <div className="absolute w-96 h-96 bg-teal-500/10 rounded-full blur-3xl -top-20 -left-20 pointer-events-none" />
+            <div className="absolute w-96 h-96 bg-blue-500/10 rounded-full blur-3xl bottom-0 right-0 pointer-events-none" />
+            
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="relative z-10 flex flex-col items-center text-center">
+              <div className="w-24 h-24 mb-8 rounded-2xl bg-gradient-to-br from-teal-500/20 to-blue-500/20 flex items-center justify-center shadow-2xl shadow-teal-900/20 border border-white/5 backdrop-blur-xl">
+                <ShieldCheck className="w-12 h-12 text-teal-400" />
+              </div>
+              <h2 className="text-4xl font-bold text-white mb-4 tracking-tight">AI-Powered PR Reviews</h2>
+              <p className="text-lg max-w-lg text-slate-400 leading-relaxed mb-8">
+                DevSensei analyzes your codebase, identifies security risks, generates tests, and architects solutions in real-time.
+              </p>
+              
+              <div className="flex space-x-4">
+                <div className="flex items-center text-sm text-slate-500 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-800">
+                  <Database className="w-4 h-4 mr-2 text-teal-500" /> ChromaDB RAG
+                </div>
+                <div className="flex items-center text-sm text-slate-500 bg-slate-900/50 px-4 py-2 rounded-full border border-slate-800">
+                  <Activity className="w-4 h-4 mr-2 text-blue-500" /> LangGraph Agents
+                </div>
+              </div>
+            </motion.div>
           </div>
         )}
       </div>
