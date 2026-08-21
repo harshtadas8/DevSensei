@@ -150,18 +150,19 @@ def apply_search_replace(repo_path: str, llm_output: str):
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
-            # We strip trailing/leading newlines to make matching more robust
-            search_block = search_block.strip()
-            replace_block = replace_block.strip()
+            # Fix Line-Ending Issue (Windows \r\n vs Linux \n)
+            content = content.replace('\r\n', '\n')
+            search_block = search_block.replace('\r\n', '\n').strip()
+            replace_block = replace_block.replace('\r\n', '\n').strip()
             
             # Simple fallback replacement
             if search_block in content:
-                content = content.replace(search_block, replace_block)
+                # Replace only ONE occurrence to prevent duplication if the AI provides a non-unique block
+                content = content.replace(search_block, replace_block, 1)
             else:
-                # Try a more fuzzy replace or line-by-line if exact match fails
                 pass 
                 
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
                 f.write(content)
 
 def coder_node(state: AgentState):
@@ -182,7 +183,7 @@ def coder_node(state: AgentState):
         "====\n"
         "  countp1 += 1;\n"
         ">>>>\n\n"
-        "The search block MUST exactly match the existing code. Include enough context lines to uniquely identify the location. "
+        "CRITICAL LIMITATION: The search block (<<<<) MUST be completely unique! You MUST include at least 3-4 lines of unchanged context above and below the edit so it doesn't accidentally match multiple places in the file."
     ))
     
     coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
