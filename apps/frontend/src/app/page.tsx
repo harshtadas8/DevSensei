@@ -554,7 +554,8 @@ export default function Home() {
                         </form>
                       </div>
                     </div>
-                  ) : <div className="p-8 overflow-y-auto">
+                  ) : (
+                    <div className="p-8 overflow-y-auto">
                         <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
                           {activeTab === "synthesizer" && (
                             <div className="mb-8 p-6 bg-slate-900/50 border border-slate-800 rounded-xl shadow-inner flex flex-col sm:flex-row items-center justify-between not-prose">
