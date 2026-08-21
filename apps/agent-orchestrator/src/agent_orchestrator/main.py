@@ -268,7 +268,48 @@ async def process_pull_request(pr_number: int, repo_full_name: str, clone_url: s
         print("\n\n=== DEVSENSEI AI PR REVIEW REPORT ===\n")
         print(final_report)
         print("\n=====================================\n")
-        logger.warning("GITHUB_TOKEN_not_set_printing_to_console")
+
+class FixRequest(BaseModel):
+    repo_path: str
+    reviewer_notes: str
+
+@app.post("/fix")
+async def autofix_code(request: FixRequest):
+    """
+    Phase 9 (Option C): Automated PR Fixes
+    Generates fully fixed code using the Coder Agent based on the Reviewer's findings.
+    """
+    logger.info("autofix_requested", repo_path=request.repo_path)
+    try:
+        from .ingestion.indexer import retrieve_context
+        from .agents.nodes import coder_node
+        from langchain_core.messages import HumanMessage
+        
+        # We need the codebase context to know what to fix
+        context = await asyncio.to_thread(retrieve_context, request.reviewer_notes, 5)
+        
+        # Build a mock state for the coder_node
+        state = {
+            "messages": [HumanMessage(content=f"Codebase Context:\n\n{context}")],
+            "repo_path": request.repo_path,
+            "reviewer_notes": request.reviewer_notes,
+            "custom_rules": "",
+            "pr_number": 0,
+            "current_agent": "system",
+            "architect_notes": "",
+            "tester_notes": "",
+            "final_report": ""
+        }
+        
+        # Run the Coder Agent
+        result = await asyncio.to_thread(coder_node, state)
+        return {"fixed_code": result["final_report"]}
+        
+    except Exception as e:
+        logger.error("fix_error", error=str(e))
+        return {"error": str(e)}
+
+logger.warning("GITHUB_TOKEN_not_set_printing_to_console")
 
 @app.post("/api/github/webhook")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks):

@@ -114,6 +114,33 @@ export default function Home() {
   const [showPrModal, setShowPrModal] = useState(false);
   const [customRules, setCustomRules] = useState("");
 
+  // Phase 9 Option C: Auto-Fix State
+  const [isFixing, setIsFixing] = useState(false);
+  const [fixResult, setFixResult] = useState<string>("");
+
+  const handleAutoFix = async () => {
+    if (!results || !results.reviewer_notes) return;
+    setIsFixing(true);
+    setFixResult("");
+    try {
+      const res = await fetch("/api/fix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repo_path: targetPath,
+          reviewer_notes: results.reviewer_notes
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      setFixResult(data.fixed_code || "No output returned.");
+    } catch (err: any) {
+      setFixResult(`Error: ${err.message}`);
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
   const [viewerContent, setViewerContent] = useState<string>("");
 
   const loadFile = async (fileName: string) => {
@@ -527,10 +554,32 @@ export default function Home() {
                         </form>
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-8 overflow-y-auto">
-                      <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
-                        <ReactMarkdown 
+                  ) : <div className="p-8 overflow-y-auto">
+                        <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
+                          {activeTab === "synthesizer" && (
+                            <div className="mb-8 p-6 bg-slate-900/50 border border-slate-800 rounded-xl shadow-inner flex flex-col sm:flex-row items-center justify-between not-prose">
+                              <div className="mb-4 sm:mb-0">
+                                <h4 className="text-lg font-bold text-white flex items-center"><Play className="w-5 h-5 mr-2 text-teal-400" /> Option C: Auto-Fix Magic</h4>
+                                <p className="text-sm text-slate-400 mt-1">Let the DevSensei Coder Agent rewrite your code to fix these issues automatically.</p>
+                              </div>
+                              <button 
+                                onClick={handleAutoFix}
+                                disabled={isFixing}
+                                className="px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 text-white rounded-lg font-bold shadow-lg shadow-teal-900/50 transition-all flex items-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isFixing ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Fixing Code...</> : <><Code2 className="w-5 h-5 mr-2" /> Auto-Fix Issues</>}
+                              </button>
+                            </div>
+                          )}
+                          {fixResult && activeTab === "synthesizer" && (
+                            <div className="mb-8 p-6 bg-green-950/30 border border-green-900/50 rounded-xl shadow-inner not-prose">
+                              <h4 className="text-lg font-bold text-green-400 mb-4">Fix Applied Successfully!</h4>
+                              <div className="max-h-96 overflow-y-auto rounded bg-[#010409] p-4 text-xs font-mono text-slate-300 whitespace-pre-wrap">
+                                {fixResult}
+                              </div>
+                            </div>
+                          )}
+                          <ReactMarkdown 
                           remarkPlugins={[remarkGfm]}
                           components={{
                             code({ node, inline, className, children, ...props }: any) {

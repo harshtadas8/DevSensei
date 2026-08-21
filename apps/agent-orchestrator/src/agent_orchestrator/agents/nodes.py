@@ -106,3 +106,27 @@ def synthesizer_node(state: AgentState):
     response = llm.invoke([prompt, user_msg])
     import time; time.sleep(10)
     return {"final_report": response.content, "current_agent": "synthesizer", "messages": [response]}
+
+def coder_node(state: AgentState):
+    llm = get_llm()
+    messages = state.get('messages', [])
+    reviewer = state.get('reviewer_notes', '')
+    
+    prompt = SystemMessage(content=(
+        "You are the DevSensei Auto-Fixer Coder Agent (Phase 9 Option C). "
+        "Your task is to read the codebase and the Reviewer's bug report, and actually FIX the code. "
+        "Output the fully corrected contents of the buggy files. "
+        "CRITICAL: You MUST wrap the file contents in a markdown code block, preceded by the filename on a line by itself. "
+        "Example:\n"
+        "filename.js\n"
+        "```javascript\n"
+        "// full fixed code\n"
+        "```\n"
+        "Do not output anything else. Only output the fixed files."
+    ))
+    
+    # We pass the context messages plus the reviewer notes so the coder knows what to fix
+    coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
+    
+    response = llm.invoke([prompt] + coder_messages)
+    return {"final_report": response.content, "current_agent": "coder", "messages": [response]}
