@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Terminal, Code, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X, Menu } from "lucide-react";
+import { Terminal, Code, Code2, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X, Menu } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
