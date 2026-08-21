@@ -10,6 +10,7 @@ app = FastAPI(title="DevSensei Agent Orchestrator")
 class AnalysisRequest(BaseModel):
     repo_path: str
     pr_number: int | None = None
+    custom_rules: str = ""
 
 @app.get("/health")
 def health_check():
@@ -73,6 +74,7 @@ async def analyze_code(request: AnalysisRequest):
             "messages": [HumanMessage(content=f"Here is the codebase context retrieved from ChromaDB for you to analyze:\n\n```python\n{sample_code}\n```")],
             "repo_path": repo_path,
             "pr_number": request.pr_number,
+            "custom_rules": request.custom_rules,
             "current_agent": "system",
             "reviewer_notes": "",
             "architect_notes": "",
@@ -237,6 +239,7 @@ async def process_pull_request(pr_number: int, repo_full_name: str, clone_url: s
         "messages": [HumanMessage(content=f"Please analyze PR #{pr_number} for {repo_full_name}. Here is context:\n\n```python\n{sample_code}\n```")],
         "repo_path": repo_path,
         "pr_number": pr_number,
+        "custom_rules": "",
         "current_agent": "system",
         "reviewer_notes": "",
         "architect_notes": "",

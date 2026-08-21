@@ -38,6 +38,9 @@ graph TD
 def code_reviewer_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
+    custom_rules = state.get('custom_rules', "")
+    rules_prompt = f"\n\nCRITICAL TEAM RULES TO ENFORCE:\n{custom_rules}\n(You must enforce these team rules during your code review if applicable.)\n" if custom_rules else ""
+
     prompt = SystemMessage(content=(
         "You are the DevSensei Code Reviewer. "
         "Analyze the provided codebase for logic bugs, security vulnerabilities, and performance bottlenecks. "
@@ -45,6 +48,7 @@ def code_reviewer_node(state: AgentState):
         "CRITICAL: You MUST provide an analysis. Do NOT output an empty string. "
         "Start your response EXACTLY with '# Security & Logic Review\n\n' and list your findings. "
         "CRITICAL: If you output any tables, you MUST use standard Markdown syntax with a mandatory separator row (e.g., | Col1 | Col2 |\n|---|---|)."
+        f"{rules_prompt}"
     ))
     response = llm.invoke([prompt] + list(messages))
     import time; time.sleep(10)
@@ -69,6 +73,9 @@ def architecture_node(state: AgentState):
 def tester_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
+    custom_rules = state.get('custom_rules', "")
+    rules_prompt = f"\n\nCRITICAL TEAM RULES TO ENFORCE:\n{custom_rules}\n(Ensure any test suggestions comply with these rules.)\n" if custom_rules else ""
+
     prompt = SystemMessage(content=(
         "You are the DevSensei Test Generator. "
         "Based on the provided codebase, suggest missing unit tests and identify edge cases. "
@@ -76,6 +83,7 @@ def tester_node(state: AgentState):
         "CRITICAL: Do NOT output empty strings. Always provide a full test plan. "
         "CRITICAL: You MUST separate markdown table rows with actual line breaks (\\n). "
         "CRITICAL: All tables MUST include the mandatory separator row directly beneath the header (e.g. |---|---|)."
+        f"{rules_prompt}"
     ))
     response = llm.invoke([prompt] + list(messages))
     import time; time.sleep(10)

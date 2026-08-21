@@ -10,6 +10,7 @@ class AgentState(TypedDict):
     messages: Annotated[Sequence[BaseMessage], operator.add]
     repo_path: str
     pr_number: int | None
+    custom_rules: str
     
     # Internal agent tracking
     current_agent: str
