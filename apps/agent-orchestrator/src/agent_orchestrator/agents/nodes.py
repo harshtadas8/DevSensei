@@ -41,7 +41,7 @@ def code_reviewer_node(state: AgentState):
     prompt = SystemMessage(content=(
         "You are the DevSensei Code Reviewer. "
         "Analyze the provided codebase for logic bugs, security vulnerabilities, and performance bottlenecks. "
-        "Provide a detailed, bulleted markdown report. "
+        "Provide a concise, bulleted markdown report. Limit your report to the TOP 5 most critical issues to save tokens. "
         "CRITICAL: You MUST provide an analysis. Do NOT output an empty string. "
         "Start your response EXACTLY with '# Security & Logic Review\n\n' and list your findings. "
         "CRITICAL: If you output any tables, you MUST use standard Markdown syntax with a mandatory separator row (e.g., | Col1 | Col2 |\n|---|---|)."
@@ -71,8 +71,8 @@ def tester_node(state: AgentState):
     messages = state.get('messages', [])
     prompt = SystemMessage(content=(
         "You are the DevSensei Test Generator. "
-        "Based on the provided codebase, suggest missing unit tests, identify unhandled edge cases, "
-        "and outline a comprehensive test plan using Markdown tables. "
+        "Based on the provided codebase, suggest missing unit tests and identify edge cases. "
+        "Outline a concise test plan using Markdown tables. Limit to the TOP 5 most important test cases to save tokens. "
         "CRITICAL: Do NOT output empty strings. Always provide a full test plan. "
         "CRITICAL: You MUST separate markdown table rows with actual line breaks (\\n). "
         "CRITICAL: All tables MUST include the mandatory separator row directly beneath the header (e.g. |---|---|)."

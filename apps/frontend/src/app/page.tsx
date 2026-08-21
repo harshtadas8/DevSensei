@@ -31,14 +31,48 @@ export default function Home() {
   const [results, setResults] = useState<any>(null);
   
   // Phase 6: Code Viewer State
-  const [viewerPath, setViewerPath] = useState<string>("");
-  const [viewerContent, setViewerContent] = useState<string>("");
-  const [viewerLoading, setViewerLoading] = useState<boolean>(false);
+  const [viewerPath, setViewerPath] = useState("");
+  const [viewerLoading, setViewerLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code">("review");
+  const [leftWidth, setLeftWidth] = useState(40); // 40% default for left pane
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const isDragging = useRef(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const containerWidth = window.innerWidth - 256; // minus sidebar
+      const mouseX = e.clientX - 256;
+      let newWidth = (mouseX / containerWidth) * 100;
+      if (newWidth < 20) newWidth = 20;
+      if (newWidth > 80) newWidth = 80;
+      setLeftWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        document.body.style.cursor = 'default';
+      }
+    };
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
+
+  const handleMouseDown = () => {
+    isDragging.current = true;
+    document.body.style.cursor = 'col-resize';
+  };
 
   // Phase 5: PR Config Modal
   const [showPrModal, setShowPrModal] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code">("review");
+  const [viewerContent, setViewerContent] = useState<string>("");
 
   const loadFile = async (fileName: string) => {
     setActiveTab("code");
@@ -233,7 +267,8 @@ export default function Home() {
             {/* LEFT PANE: DIAGRAM (Architect) */}
             <motion.div 
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
-              className="w-1/2 border-r border-slate-800 p-8 overflow-y-auto bg-[#0d1117]"
+              className="border-r border-slate-800 p-8 overflow-y-auto bg-[#0d1117] flex-shrink-0"
+              style={{ width: `${leftWidth}%` }}
             >
               <div className="flex items-center space-x-3 mb-8">
                 <div className="p-2 bg-teal-500/10 rounded-lg">
@@ -268,13 +303,30 @@ export default function Home() {
               </div>
             </motion.div>
 
+            {/* DRAGGABLE RESIZER */}
+            <div 
+              className="w-1.5 bg-slate-800/50 hover:bg-teal-500 cursor-col-resize flex-shrink-0 flex items-center justify-center z-20"
+              onMouseDown={handleMouseDown}
+            >
+              <div className="w-0.5 h-8 bg-slate-600 hover:bg-white rounded-full" />
+            </div>
+
             {/* RIGHT PANE: ANALYSIS / CHAT */}
             <motion.div 
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
-              className="w-1/2 flex flex-col bg-[#010409]"
+              className="flex-1 flex flex-col bg-[#010409] min-w-0"
             >
               {/* Tabs */}
-              <div className="flex px-2 pt-2 space-x-1 bg-[#010409] border-b border-slate-800">
+              <div className="flex px-2 pt-2 space-x-1 bg-[#010409] border-b border-slate-800 overflow-x-auto no-scrollbar">
+                {isLeftCollapsed ? (
+                  <button onClick={() => setIsLeftCollapsed(false)} className="mr-2 px-3 py-2 text-teal-500 hover:text-teal-400 flex items-center text-xs font-semibold uppercase tracking-wider shrink-0 transition-colors">
+                    <span className="mr-1">Panel</span> ➔
+                  </button>
+                ) : (
+                  <button onClick={() => setIsLeftCollapsed(true)} className="mr-2 px-3 py-2 text-slate-500 hover:text-slate-400 flex items-center text-xs font-semibold uppercase tracking-wider shrink-0 transition-colors">
+                    🡠 <span className="ml-1">Collapse</span>
+                  </button>
+                )}
                 <button 
                   onClick={() => setActiveTab("review")}
                   className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "review" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
