@@ -107,26 +107,105 @@ def synthesizer_node(state: AgentState):
     import time; time.sleep(10)
     return {"final_report": response.content, "current_agent": "synthesizer", "messages": [response]}
 
+def apply_search_replace(repo_path: str, llm_output: str):
+    import re, os
+    
+    # Simple parser for Aider-style search/replace blocks
+    # Format expected:
+    # filename.ext
+    # <<<<
+    # old code
+    # ====
+    # new code
+    # >>>>
+    
+    blocks = re.split(r'<<<<', llm_output)
+    if len(blocks) < 2:
+        return # No blocks found
+        
+    for block in blocks[1:]:
+        try:
+            # Find the filename which should be right before the <<<<
+            # We can just look for the last line of the previous block
+            pass # We'll do a better regex extraction
+        except Exception:
+            continue
+
+    # Better extraction approach using regex
+    pattern = re.compile(r'([a-zA-Z0-9_\-\./]+)\s*<<<<\s*(.*?)\s*====\s*(.*?)\s*>>>>', re.DOTALL)
+    matches = pattern.findall(llm_output)
+    
+    for filename, search_block, replace_block in matches:
+        filename = filename.strip()
+        filepath = os.path.join(repo_path, filename)
+        
+        if not os.path.exists(filepath):
+            # Try stripping leading slashes or looking for the file
+            for root, _, files in os.walk(repo_path):
+                if filename.split('/')[-1] in files:
+                    filepath = os.path.join(root, filename.split('/')[-1])
+                    break
+                    
+        if os.path.exists(filepath):
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+                
+            # We strip trailing/leading newlines to make matching more robust
+            search_block = search_block.strip()
+            replace_block = replace_block.strip()
+            
+            # Simple fallback replacement
+            if search_block in content:
+                content = content.replace(search_block, replace_block)
+            else:
+                # Try a more fuzzy replace or line-by-line if exact match fails
+                pass 
+                
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(content)
+
 def coder_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
     reviewer = state.get('reviewer_notes', '')
+    repo_path = state.get('repo_path', '')
     
     prompt = SystemMessage(content=(
-        "You are the DevSensei Auto-Fixer Coder Agent (Phase 9 Option C). "
-        "Your task is to read the codebase and the Reviewer's bug report, and actually FIX the code. "
-        "Output the fully corrected contents of the buggy files. "
-        "CRITICAL: You MUST wrap the file contents in a markdown code block, preceded by the filename on a line by itself. "
-        "Example:\n"
-        "filename.js\n"
-        "```javascript\n"
-        "// full fixed code\n"
-        "```\n"
-        "Do not output anything else. Only output the fixed files."
+        "You are the DevSensei Auto-Fixer Coder Agent. "
+        "Your task is to fix the bugs identified by the Reviewer. "
+        "CRITICAL: You MUST use Search/Replace blocks to modify the code. "
+        "Do NOT output full files. Only output the exact lines that need changing. "
+        "Format exactly like this:\n"
+        "script.js\n"
+        "<<<<\n"
+        "  countp1 = countp1 + 0.5;\n"
+        "====\n"
+        "  countp1 += 1;\n"
+        ">>>>\n\n"
+        "The search block MUST exactly match the existing code. Include enough context lines to uniquely identify the location. "
     ))
     
-    # We pass the context messages plus the reviewer notes so the coder knows what to fix
     coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
     
     response = llm.invoke([prompt] + coder_messages)
-    return {"final_report": response.content, "current_agent": "coder", "messages": [response]}
+    llm_output = response.content
+    
+    # Try to apply the edits if we have a local path
+    diff_output = ""
+    if repo_path.startswith("/tmp/"):
+        apply_search_replace(repo_path, llm_output)
+        
+        # Run git diff to show what changed
+        import subprocess
+        try:
+            result = subprocess.run(["git", "diff"], cwd=repo_path, capture_output=True, text=True)
+            diff_output = result.stdout
+            
+            if not diff_output:
+                diff_output = "Edits were generated but the search strings didn't exactly match the file contents, or no files were changed."
+        except Exception as e:
+            diff_output = f"Could not generate diff: {e}"
+            
+    final_output = f"### AI Generated Fixes\n\n```text\n{llm_output}\n```\n\n### Actual Applied Changes (Git Diff)\n\n```diff\n{diff_output}\n```" if diff_output else llm_output
+    
+    return {"final_report": final_output, "current_agent": "coder", "messages": [response]}

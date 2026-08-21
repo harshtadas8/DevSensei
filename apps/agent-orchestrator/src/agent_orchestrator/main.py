@@ -288,10 +288,19 @@ async def autofix_code(request: FixRequest):
         # We need the codebase context to know what to fix
         context = await asyncio.to_thread(retrieve_context, request.reviewer_notes, 5)
         
+        # Calculate local path for editing
+        local_repo_path = request.repo_path
+        if local_repo_path.startswith("http://") or local_repo_path.startswith("https://"):
+            from urllib.parse import urlparse
+            parsed = urlparse(local_repo_path)
+            parts = parsed.path.strip("/").split("/")
+            if len(parts) >= 2:
+                local_repo_path = f"/tmp/{parts[0]}_{parts[1].replace('.git', '')}_manual"
+        
         # Build a mock state for the coder_node
         state = {
             "messages": [HumanMessage(content=f"Codebase Context:\n\n{context}")],
-            "repo_path": request.repo_path,
+            "repo_path": local_repo_path,
             "reviewer_notes": request.reviewer_notes,
             "custom_rules": "",
             "pr_number": 0,
