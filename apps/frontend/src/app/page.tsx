@@ -112,6 +112,7 @@ export default function Home() {
 
   // Phase 5: PR Config Modal
   const [showPrModal, setShowPrModal] = useState(false);
+  const [customRules, setCustomRules] = useState("");
 
   const [viewerContent, setViewerContent] = useState<string>("");
 
@@ -148,7 +149,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ repo_path: targetPath }),
+        body: JSON.stringify({ repo_path: targetPath, custom_rules: customRules }),
       });
       
       const reader = res.body?.getReader();
@@ -229,30 +230,42 @@ export default function Home() {
         </div>
       )}
 
-      {/* PR CONFIG MODAL */}
+      {/* PROJECT SETTINGS MODAL */}
       {showPrModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
-          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0d1117] border border-slate-700 rounded-xl shadow-2xl w-[500px] overflow-hidden">
-            <div className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
-              <h3 className="font-semibold text-slate-200 flex items-center"><GitBranch className="w-5 h-5 mr-2 text-teal-400" /> PR Bot Configuration</h3>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-[#0d1117] border border-slate-700 rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between shrink-0">
+              <h3 className="font-semibold text-slate-200 flex items-center"><Settings className="w-5 h-5 mr-2 text-teal-400" /> Project Settings & Rules</h3>
               <button onClick={() => setShowPrModal(false)} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
             </div>
-            <div className="p-6 space-y-4 text-sm text-slate-300">
-              <p>Configure DevSensei to automatically analyze pull requests using GitHub Webhooks.</p>
+            <div className="p-6 space-y-6 text-sm text-slate-300 overflow-y-auto">
               <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Webhook URL</label>
-                <code className="block w-full p-2 bg-[#010409] border border-slate-800 rounded text-teal-400 select-all">http://your-server-ip:8000/api/github/webhook</code>
+                <label className="block text-sm font-semibold text-slate-200 mb-2">Custom AI Rules (Option D)</label>
+                <p className="text-xs text-slate-500 mb-3">Define custom rules or standards for the DevSensei AI to strictly enforce during the Security & Logic review. (e.g., "Use Tailwind CSS", "No console.logs", "Enforce strict types")</p>
+                <textarea
+                  value={customRules}
+                  onChange={(e) => setCustomRules(e.target.value)}
+                  placeholder="Enter your custom repository rules here..."
+                  className="w-full h-32 bg-[#010409] border border-slate-700 rounded-lg p-3 text-slate-300 focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 font-mono text-sm resize-none"
+                />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-500 mb-1">Webhook Secret</label>
-                <code className="block w-full p-2 bg-[#010409] border border-slate-800 rounded text-amber-400 select-all">devsensei_secret</code>
-              </div>
-              <div className="p-3 bg-teal-950/30 border border-teal-900/50 rounded text-teal-200 text-xs">
-                <strong>Status:</strong> The /api/github/webhook endpoint is currently <strong>Active</strong> and listening for `pull_request` events.
+
+              <div className="pt-6 border-t border-slate-800">
+                <h4 className="text-sm font-semibold text-slate-200 mb-3">GitHub Webhook Integration (Optional)</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Webhook URL</label>
+                    <code className="block w-full p-2 bg-[#010409] border border-slate-800 rounded text-teal-400 select-all">http://your-server-ip:8000/api/github/webhook</code>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 mb-1">Webhook Secret</label>
+                    <code className="block w-full p-2 bg-[#010409] border border-slate-800 rounded text-amber-400 select-all">devsensei_secret</code>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="border-t border-slate-800 p-4 bg-[#010409] flex justify-end">
-              <button onClick={() => setShowPrModal(false)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded font-medium text-sm transition-colors">Done</button>
+            <div className="border-t border-slate-800 p-4 bg-[#010409] flex justify-end shrink-0">
+              <button onClick={() => setShowPrModal(false)} className="px-6 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded font-medium text-sm transition-colors shadow-lg shadow-teal-900/20">Save Settings</button>
             </div>
           </motion.div>
         </div>
