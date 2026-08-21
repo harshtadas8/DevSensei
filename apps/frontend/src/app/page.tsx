@@ -214,8 +214,8 @@ export default function Home() {
               Onboarder
             </button>
             <button onClick={() => setShowPrModal(true)} className="w-full flex items-center px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors group">
-              <GitBranch className="w-5 h-5 mr-3 group-hover:text-teal-400 transition-colors" />
-              PR Bot Config
+              <Settings className="w-5 h-5 mr-3 group-hover:text-teal-400 transition-colors" />
+              Project Settings
             </button>
           </nav>
           <div className="p-4 border-t border-slate-800 flex items-center">
