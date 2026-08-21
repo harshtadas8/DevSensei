@@ -39,6 +39,14 @@ export default function Home() {
   const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(true);
   const isDragging = useRef(false);
 
+  // Phase 9 Option B: Chat State
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
+    { role: "assistant", content: "Hi! I'm DevSensei. I have analyzed this repository. Ask me anything about the code!" }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current) return;
@@ -105,13 +113,7 @@ export default function Home() {
   // Phase 5: PR Config Modal
   const [showPrModal, setShowPrModal] = useState(false);
 
-  // Phase 9 Option B: Chat State
-  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
-    { role: "assistant", content: "Hi! I'm DevSensei. I have analyzed this repository. Ask me anything about the code!" }
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [isChatLoading, setIsChatLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [viewerContent, setViewerContent] = useState<string>("");
 
   const loadFile = async (fileName: string) => {
     setActiveTab("code");
