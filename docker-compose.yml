@@ -1,17 +1,5 @@
 services:
-  # 1. ChromaDB Vector Store
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: devsensei-chromadb
-    ports:
-      - "8001:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    environment:
-      - IS_PERSISTENT=TRUE
-    restart: unless-stopped
-
-  # 2. Agent Orchestrator API (FastAPI)
+  # 1. Agent Orchestrator API (FastAPI)
   orchestrator:
     build:
       context: ./apps/agent-orchestrator
@@ -26,10 +14,7 @@ services:
     env_file:
       - .env
     environment:
-      - CHROMA_DB_URL=http://chromadb:8000
       - LOG_LEVEL=debug
-    depends_on:
-      - chromadb
     restart: unless-stopped
 
   # 3. Frontend (Next.js)
@@ -45,7 +30,7 @@ services:
       - /app/node_modules
       - /app/.next
     environment:
-      - NEXT_PUBLIC_API_URL=http://orchestrator:8000
+      - BACKEND_API_URL=http://orchestrator:8000
     depends_on:
       - orchestrator
     restart: unless-stopped
