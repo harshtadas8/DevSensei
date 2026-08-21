@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Terminal, Code, Code2, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X, Menu } from "lucide-react";
+import { Terminal, Code, Code2, Settings, Bug, Play, GitBranch, ShieldCheck, Database, LayoutTemplate, Activity, X, Menu, MessageSquare, Send, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import mermaid from "mermaid";
@@ -70,10 +70,48 @@ export default function Home() {
     document.body.style.cursor = 'col-resize';
   };
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  const handleChatSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    const userMsg = chatInput.trim();
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: "user", content: userMsg }]);
+    setIsChatLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: userMsg, repo_path: results?.repo_path || "" })
+      });
+      const data = await res.json();
+      
+      setChatMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: data.answer || data.error || "Sorry, I couldn't generate a response." 
+      }]);
+    } catch (err: any) {
+      setChatMessages(prev => [...prev, { role: "assistant", content: `Error: ${err.message}` }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   // Phase 5: PR Config Modal
   const [showPrModal, setShowPrModal] = useState(false);
 
-  const [viewerContent, setViewerContent] = useState<string>("");
+  // Phase 9 Option B: Chat State
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
+    { role: "assistant", content: "Hi! I'm DevSensei. I have analyzed this repository. Ask me anything about the code!" }
+  ]);
+  const [chatInput, setChatInput] = useState("");
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const loadFile = async (fileName: string) => {
     setActiveTab("code");
@@ -348,6 +386,7 @@ export default function Home() {
                   { id: "review", label: "Security Review", icon: ShieldCheck },
                   { id: "test", label: "Test Coverage", icon: Bug },
                   { id: "synthesizer", label: "Synthesizer", icon: Code2 },
+                  { id: "chat", label: "Chat", icon: MessageSquare },
                   { id: "code", label: "Code Viewer", icon: Terminal }
                 ].map((tab) => (
                   <button 
@@ -360,10 +399,10 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Tab Content */}
-              <div className="flex-1 p-8 overflow-y-auto">
-                <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden flex flex-col">
                   {activeTab === "code" ? (
+                    <div className="p-8 h-full flex flex-col">
                      <div className="bg-[#0d1117] rounded-xl border border-slate-700/50 shadow-inner h-full flex overflow-hidden">
                        {/* FILE EXPLORER SIDEBAR */}
                        {results.files && results.files.length > 0 && (
@@ -409,44 +448,111 @@ export default function Home() {
                          </div>
                        </div>
                      </div>
+                    </div>
+                  ) : activeTab === "chat" ? (
+                    <div className="flex flex-col h-full bg-[#0d1117] relative">
+                      <div className="flex-1 p-6 overflow-y-auto space-y-6">
+                        {chatMessages.map((msg, i) => (
+                          <motion.div 
+                            key={i}
+                            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`max-w-[85%] rounded-2xl px-6 py-4 ${
+                              msg.role === 'user' 
+                                ? 'bg-teal-600 text-white shadow-lg shadow-teal-900/20 rounded-tr-sm' 
+                                : 'bg-[#010409] text-slate-300 border border-slate-700/50 shadow-xl rounded-tl-sm prose prose-invert prose-teal max-w-none prose-pre:bg-slate-900/50 prose-pre:border prose-pre:border-slate-800'
+                            }`}>
+                              {msg.role === 'user' ? (
+                                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                              ) : (
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm]}
+                                  components={{
+                                    code({ node, inline, className, children, ...props }: any) {
+                                      if (inline) return <code className="bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-300" {...props}>{children}</code>;
+                                      return <code className={className} {...props}>{children}</code>;
+                                    }
+                                  }}
+                                >
+                                  {msg.content}
+                                </ReactMarkdown>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                        {isChatLoading && (
+                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-start">
+                            <div className="bg-[#010409] border border-slate-700/50 rounded-2xl rounded-tl-sm px-6 py-4 shadow-xl flex items-center space-x-3 text-slate-400">
+                              <Loader2 className="w-5 h-5 animate-spin text-teal-500" />
+                              <span className="text-sm font-medium animate-pulse">DevSensei is thinking...</span>
+                            </div>
+                          </motion.div>
+                        )}
+                        <div ref={messagesEndRef} />
+                      </div>
+                      
+                      <div className="p-4 bg-[#0d1117] border-t border-slate-800">
+                        <form onSubmit={handleChatSubmit} className="relative max-w-4xl mx-auto">
+                          <input
+                            type="text"
+                            value={chatInput}
+                            onChange={(e) => setChatInput(e.target.value)}
+                            placeholder="Ask a question about your code..."
+                            className="w-full bg-[#010409] border border-slate-700 text-white pl-4 pr-12 py-4 rounded-xl text-sm focus:outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500 shadow-inner transition-all"
+                            disabled={isChatLoading}
+                          />
+                          <button 
+                            type="submit" 
+                            disabled={!chatInput.trim() || isChatLoading}
+                            className="absolute right-2 top-2 bottom-2 aspect-square bg-teal-600 hover:bg-teal-500 disabled:bg-slate-800 disabled:text-slate-500 text-white rounded-lg flex items-center justify-center transition-all shadow-lg"
+                          >
+                            <Send className="w-4 h-4" />
+                          </button>
+                        </form>
+                      </div>
+                    </div>
                   ) : (
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        code({ node, inline, className, children, ...props }: any) {
-                          const text = String(children);
-                          if (inline && (text.includes('/') || text.endsWith('.py') || text.endsWith('.ts') || text.endsWith('.json') || text.endsWith('.yml') || text.endsWith('.js') || text.endsWith('.css') || text.endsWith('.html'))) {
-                            return (
-                              <code 
-                                {...props} 
-                                onClick={() => loadFile(text)}
-                                className="cursor-pointer text-teal-300 hover:text-white hover:bg-teal-900/50 underline decoration-dashed decoration-teal-700/50 bg-teal-950/30 px-1.5 py-0.5 rounded transition-all duration-200"
-                                title={`View ${text} in Code Viewer`}
-                              >
-                                {children}
-                              </code>
-                            );
-                          }
-                          return <code className={`${className} bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-300`} {...props}>{children}</code>;
-                        },
-                        table({ children, ...props }: any) {
-                          return <div className="overflow-x-auto w-full my-6 ring-1 ring-slate-800 rounded-lg bg-[#0d1117] shadow-xl"><table className="w-full text-left border-collapse" {...props}>{children}</table></div>;
-                        },
-                        th({ children, ...props }: any) {
-                          return <th className="px-4 py-3 border-b border-slate-700 bg-slate-900/80 text-slate-200 font-medium text-sm whitespace-nowrap" {...props}>{children}</th>;
-                        },
-                        td({ children, ...props }: any) {
-                          return <td className="px-4 py-3 border-b border-slate-800/50 text-slate-400 text-sm align-top leading-relaxed" {...props}>{children}</td>;
-                        }
-                      }}
-                    >
-                      {activeTab === "review" ? results.reviewer_notes : 
-                       activeTab === "test" ? results.tester_notes : 
-                       results.final_report || "No synthesized report generated."}
-                    </ReactMarkdown>
+                    <div className="p-8 overflow-y-auto">
+                      <div className="prose prose-invert prose-teal max-w-none prose-headings:text-slate-100 prose-a:text-teal-400 prose-strong:text-slate-200">
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            code({ node, inline, className, children, ...props }: any) {
+                              const text = String(children);
+                              if (inline && (text.includes('/') || text.endsWith('.py') || text.endsWith('.ts') || text.endsWith('.json') || text.endsWith('.yml') || text.endsWith('.js') || text.endsWith('.css') || text.endsWith('.html'))) {
+                                return (
+                                  <code 
+                                    {...props} 
+                                    onClick={() => loadFile(text)}
+                                    className="cursor-pointer text-teal-300 hover:text-white hover:bg-teal-900/50 underline decoration-dashed decoration-teal-700/50 bg-teal-950/30 px-1.5 py-0.5 rounded transition-all duration-200"
+                                    title={`View ${text} in Code Viewer`}
+                                  >
+                                    {children}
+                                  </code>
+                                );
+                              }
+                              return <code className={`${className} bg-slate-800/50 px-1.5 py-0.5 rounded text-slate-300`} {...props}>{children}</code>;
+                            },
+                            table({ children, ...props }: any) {
+                              return <div className="overflow-x-auto w-full my-6 ring-1 ring-slate-800 rounded-lg bg-[#0d1117] shadow-xl"><table className="w-full text-left border-collapse" {...props}>{children}</table></div>;
+                            },
+                            th({ children, ...props }: any) {
+                              return <th className="px-4 py-3 border-b border-slate-700 bg-slate-900/80 text-slate-200 font-medium text-sm whitespace-nowrap" {...props}>{children}</th>;
+                            },
+                            td({ children, ...props }: any) {
+                              return <td className="px-4 py-3 border-b border-slate-800/50 text-slate-400 text-sm align-top leading-relaxed" {...props}>{children}</td>;
+                            }
+                          }}
+                        >
+                          {activeTab === "review" ? results.reviewer_notes : 
+                           activeTab === "test" ? results.tester_notes : 
+                           results.final_report || "No synthesized report generated."}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
             </motion.div>
           </div>
         ) : (
