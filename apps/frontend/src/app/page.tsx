@@ -33,7 +33,7 @@ export default function Home() {
   // Phase 6: Code Viewer State
   const [viewerPath, setViewerPath] = useState("");
   const [viewerLoading, setViewerLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code">("review");
+  const [activeTab, setActiveTab] = useState<"chat" | "review" | "test" | "code" | "synthesizer">("review");
   const [leftWidth, setLeftWidth] = useState(40); // 40% default for left pane
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(true);
