@@ -317,40 +317,30 @@ export default function Home() {
               className="flex-1 flex flex-col bg-[#010409] min-w-0"
             >
               {/* Tabs */}
-              <div className="flex px-2 pt-2 space-x-1 bg-[#010409] border-b border-slate-800 overflow-x-auto no-scrollbar">
-                {isLeftCollapsed ? (
-                  <button onClick={() => setIsLeftCollapsed(false)} className="mr-2 px-3 py-2 text-teal-500 hover:text-teal-400 flex items-center text-xs font-semibold uppercase tracking-wider shrink-0 transition-colors">
-                    <span className="mr-1">Panel</span> ➔
+              <div className="flex px-2 pt-2 space-x-1 bg-[#010409] border-b border-slate-800 overflow-x-auto no-scrollbar items-center">
+                <button 
+                  onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
+                  className="mr-2 p-2 text-slate-500 hover:text-teal-400 hover:bg-slate-800/50 rounded-lg transition-colors"
+                  title={isLeftCollapsed ? "Show Architecture Panel" : "Hide Architecture Panel"}
+                >
+                  <LayoutTemplate className="w-4 h-4" />
+                </button>
+                <div className="h-6 w-px bg-slate-800 mx-2" />
+                
+                {[
+                  { id: "review", label: "Security Review", icon: ShieldCheck },
+                  { id: "test", label: "Test Coverage", icon: Bug },
+                  { id: "synthesizer", label: "Synthesizer", icon: Code2 },
+                  { id: "code", label: "Code Viewer", icon: Terminal }
+                ].map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 whitespace-nowrap ${activeTab === tab.id ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
+                  >
+                    <tab.icon className="w-4 h-4 mr-2" /> {tab.label}
                   </button>
-                ) : (
-                  <button onClick={() => setIsLeftCollapsed(true)} className="mr-2 px-3 py-2 text-slate-500 hover:text-slate-400 flex items-center text-xs font-semibold uppercase tracking-wider shrink-0 transition-colors">
-                    🡠 <span className="ml-1">Collapse</span>
-                  </button>
-                )}
-                <button 
-                  onClick={() => setActiveTab("review")}
-                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "review" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
-                >
-                  <ShieldCheck className="w-4 h-4 mr-2" /> Security Review
-                </button>
-                <button 
-                  onClick={() => setActiveTab("test")}
-                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "test" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
-                >
-                  <Bug className="w-4 h-4 mr-2" /> Test Coverage
-                </button>
-                <button 
-                  onClick={() => setActiveTab("chat")}
-                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "chat" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
-                >
-                  <Code className="w-4 h-4 mr-2" /> Synthesizer
-                </button>
-                <button 
-                  onClick={() => setActiveTab("code")}
-                  className={`px-4 py-3 font-medium text-sm flex items-center transition-all border-b-2 rounded-t-lg hover:bg-slate-800/30 ${activeTab === "code" ? "text-teal-400 border-teal-400 bg-slate-800/30" : "text-slate-400 border-transparent"}`}
-                >
-                  <Terminal className="w-4 h-4 mr-2" /> Code Viewer
-                </button>
+                ))}
               </div>
 
               {/* Tab Content */}
