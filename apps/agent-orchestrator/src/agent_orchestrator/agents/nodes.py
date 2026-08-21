@@ -14,7 +14,7 @@ set_llm_cache(InMemoryCache())
 def get_llm():
     if os.environ.get("GROQ_API_KEY"):
         # Use openai/gpt-oss-120b for robust formatting and reasoning
-        return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=2, request_timeout=30) 
+        return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
         return ChatGoogleGenerativeAI(model="gemini-2.5-pro")
         
@@ -36,12 +36,8 @@ graph TD
     return DummyLLM()
 
 def code_reviewer_node(state: AgentState):
-    """
-    Code Reviewer Agent: Focuses on logic bugs, security, and performance.
-    """
     llm = get_llm()
     messages = state.get('messages', [])
-    
     prompt = SystemMessage(content=(
         "You are the DevSensei Code Reviewer. "
         "Analyze the provided codebase for logic bugs, security vulnerabilities, and performance bottlenecks. "
@@ -50,22 +46,13 @@ def code_reviewer_node(state: AgentState):
         "Start your response EXACTLY with '# Security & Logic Review\n\n' and list your findings. "
         "CRITICAL: If you output any tables, you MUST use standard Markdown syntax with a mandatory separator row (e.g., | Col1 | Col2 |\n|---|---|)."
     ))
-    
-    # In a real run, we would pass the diff from the MCP server here
     response = llm.invoke([prompt] + list(messages))
-    
-    return {
-        "reviewer_notes": response.content,
-        "current_agent": "reviewer"
-    }
+    import time; time.sleep(10)
+    return {"reviewer_notes": response.content, "current_agent": "reviewer"}
 
 def architecture_node(state: AgentState):
-    """
-    Architecture Agent: Focuses on structural integrity, patterns, and AST data.
-    """
     llm = get_llm()
     messages = state.get('messages', [])
-    
     prompt = SystemMessage(content=(
         "You are the DevSensei Architecture Agent. "
         "Review the codebase and generate a Mermaid.js flowchart (graph TD) visualizing the high-level architecture. "
@@ -75,21 +62,13 @@ def architecture_node(state: AgentState):
         "2. Keep node text simple and alphanumeric (e.g. `A[FastAPI App]` is good, `A[FastAPI (Server)]` is BAD). \n"
         "3. Provide ONLY the mermaid code block. Do not output any conversational text or explanation."
     ))
-    
     response = llm.invoke([prompt] + list(messages))
-    
-    return {
-        "architect_notes": response.content,
-        "current_agent": "architect"
-    }
+    import time; time.sleep(10)
+    return {"architect_notes": response.content, "current_agent": "architect"}
 
 def tester_node(state: AgentState):
-    """
-    Test Generator Agent: Focuses on edge cases and test coverage.
-    """
     llm = get_llm()
     messages = state.get('messages', [])
-    
     prompt = SystemMessage(content=(
         "You are the DevSensei Test Generator. "
         "Based on the provided codebase, suggest missing unit tests, identify unhandled edge cases, "
@@ -98,23 +77,15 @@ def tester_node(state: AgentState):
         "CRITICAL: You MUST separate markdown table rows with actual line breaks (\\n). "
         "CRITICAL: All tables MUST include the mandatory separator row directly beneath the header (e.g. |---|---|)."
     ))
-    
     response = llm.invoke([prompt] + list(messages))
-    
-    return {
-        "tester_notes": response.content,
-        "current_agent": "tester"
-    }
+    import time; time.sleep(10)
+    return {"tester_notes": response.content, "current_agent": "tester"}
 
 def synthesizer_node(state: AgentState):
-    """
-    Synthesizer Agent: De-duplicates findings, formats markdown, ranks by severity.
-    """
     llm = get_llm()
     reviewer = state.get('reviewer_notes', '')
     architect = state.get('architect_notes', '')
     tester = state.get('tester_notes', '')
-    
     prompt = SystemMessage(content=(
         "You are the DevSensei Synthesizer Agent. "
         "Merge the following reports into a single, cohesive, highly readable GitHub PR comment. "
@@ -123,13 +94,7 @@ def synthesizer_node(state: AgentState):
         "CRITICAL: All tables MUST include the mandatory separator row directly beneath the header (e.g. |---|---|). "
         "Do NOT include the raw Mermaid diagram in this text. The UI handles the diagram separately. Just synthesize the text observations."
     ))
-    
     user_msg = HumanMessage(content=f"Reviewer:\n{reviewer}\n\nArchitect:\n(Mermaid diagram generated)\n\nTester:\n{tester}")
-    
     response = llm.invoke([prompt, user_msg])
-    
-    return {
-        "final_report": response.content,
-        "current_agent": "synthesizer",
-        "messages": [response]
-    }
+    import time; time.sleep(10)
+    return {"final_report": response.content, "current_agent": "synthesizer", "messages": [response]}
