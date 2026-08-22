@@ -219,6 +219,11 @@ def coder_node(state: AgentState):
                             branch_name = f"devsensei-autofix-{int(time.time())}"
                             subprocess.run(["git", "checkout", "-b", branch_name], cwd=repo_path, check=True)
                             subprocess.run(["git", "add", "."], cwd=repo_path, check=True)
+                            
+                            # Configure Git Identity
+                            subprocess.run(["git", "config", "user.email", "coder@devsensei.ai"], cwd=repo_path, check=True)
+                            subprocess.run(["git", "config", "user.name", "DevSensei AI"], cwd=repo_path, check=True)
+                            
                             subprocess.run(["git", "commit", "-m", "DevSensei AI Auto-Fix"], cwd=repo_path, check=True)
                             subprocess.run(["git", "push", "-u", "origin", branch_name], cwd=repo_path, check=True)
                             
