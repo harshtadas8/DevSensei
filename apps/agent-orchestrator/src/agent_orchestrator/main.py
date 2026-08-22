@@ -177,9 +177,16 @@ async def chat_with_repo(request: ChatRequest):
         
         response = await chat_model.ainvoke(messages)
         
+        # Safely extract text (handling Gemini multimodal lists)
+        content = getattr(response, 'content', response)
+        if isinstance(content, list):
+            answer_text = "\n".join([str(c.get("text", c)) if isinstance(c, dict) else str(c) for c in content])
+        else:
+            answer_text = str(content)
+        
         return {
             "status": "success",
-            "answer": response.content,
+            "answer": answer_text,
             "retrieved_context": context
         }
         
