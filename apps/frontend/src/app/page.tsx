@@ -566,9 +566,17 @@ export default function Home() {
                               <button 
                                 onClick={handleAutoFix}
                                 disabled={isFixing}
-                                className="px-6 py-3 bg-gradient-to-r from-teal-500 to-blue-500 hover:from-teal-400 hover:to-blue-400 text-white rounded-lg font-bold shadow-lg shadow-teal-900/50 transition-all flex items-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`px-6 py-3 rounded-lg font-bold text-white shadow-lg transition-all flex items-center ${
+                                  isFixing 
+                                    ? 'bg-teal-500/50 cursor-not-allowed' 
+                                    : 'bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 hover:shadow-teal-500/25'
+                                }`}
                               >
-                                {isFixing ? <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Fixing Code...</> : <><Code2 className="w-5 h-5 mr-2" /> Auto-Fix Issues</>}
+                                {isFixing ? (
+                                  <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Fixing Code...</>
+                                ) : (
+                                  <><Code2 className="w-5 h-5 mr-2" /> Generate & Push Pull Request</>
+                                )}
                               </button>
                             </div>
                           )}
