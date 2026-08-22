@@ -35,6 +35,14 @@ graph TD
             return HumanMessage(content="[LLM Mock] Analysis complete. Add an API key to your .env to see real insights!")
     return DummyLLM()
 
+def _get_text(response):
+    content = getattr(response, 'content', response)
+    if isinstance(content, str):
+        return content
+    elif isinstance(content, list):
+        return "\n".join([str(c.get("text", c)) if isinstance(c, dict) else str(c) for c in content])
+    return str(content)
+
 def code_reviewer_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
@@ -52,7 +60,7 @@ def code_reviewer_node(state: AgentState):
     ))
     response = llm.invoke([prompt] + list(messages))
     import time; time.sleep(10)
-    return {"reviewer_notes": response.content, "current_agent": "reviewer"}
+    return {"reviewer_notes": _get_text(response), "current_agent": "reviewer"}
 
 def architecture_node(state: AgentState):
     llm = get_llm()
@@ -68,7 +76,7 @@ def architecture_node(state: AgentState):
     ))
     response = llm.invoke([prompt] + list(messages))
     import time; time.sleep(10)
-    return {"architect_notes": response.content, "current_agent": "architect"}
+    return {"architect_notes": _get_text(response), "current_agent": "architect"}
 
 def tester_node(state: AgentState):
     llm = get_llm()
@@ -87,7 +95,7 @@ def tester_node(state: AgentState):
     ))
     response = llm.invoke([prompt] + list(messages))
     import time; time.sleep(10)
-    return {"tester_notes": response.content, "current_agent": "tester"}
+    return {"tester_notes": _get_text(response), "current_agent": "tester"}
 
 def synthesizer_node(state: AgentState):
     llm = get_llm()
@@ -105,7 +113,7 @@ def synthesizer_node(state: AgentState):
     user_msg = HumanMessage(content=f"Reviewer:\n{reviewer}\n\nArchitect:\n(Mermaid diagram generated)\n\nTester:\n{tester}")
     response = llm.invoke([prompt, user_msg])
     import time; time.sleep(10)
-    return {"final_report": response.content, "current_agent": "synthesizer", "messages": [response]}
+    return {"final_report": _get_text(response), "current_agent": "synthesizer", "messages": [response]}
 
 def apply_search_replace(repo_path: str, llm_output: str):
     import re, os
@@ -183,7 +191,7 @@ def coder_node(state: AgentState):
     coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
     
     response = llm.invoke([prompt] + coder_messages)
-    llm_output = response.content
+    llm_output = _get_text(response)
     
     # Try to apply the edits if we have a local path
     diff_output = ""
