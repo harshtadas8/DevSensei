@@ -113,39 +113,51 @@ def apply_search_replace(repo_path: str, llm_output: str):
     # Fix common LLM hallucination where it puts >>>> before ====
     llm_output = re.sub(r'>>>>\s*====', '====', llm_output)
     
-    # Better extraction approach using regex
-    pattern = re.compile(r'([a-zA-Z0-9_\-\./]+)\s*<<<<\s*(.*?)\s*====\s*(.*?)\s*>>>>', re.DOTALL)
-    matches = pattern.findall(llm_output)
+    blocks = llm_output.split('<<<<')
+    current_file = None
     
-    for filename, search_block, replace_block in matches:
-        filename = filename.strip()
-        filepath = os.path.join(repo_path, filename)
+    for i in range(1, len(blocks)):
+        # Extract filename from the end of the previous text block
+        pre_text = blocks[i-1].strip()
+        if pre_text:
+            lines = pre_text.split('\n')
+            # Look at the last non-empty line
+            for line in reversed(lines):
+                line = line.strip().replace('*', '')
+                if line and not line.startswith('>>>>'):
+                    current_file = line
+                    break
+                    
+        if not current_file:
+            continue
+            
+        if '====' not in blocks[i] or '>>>>' not in blocks[i]:
+            continue
+            
+        search_text = blocks[i].split('====')[0].strip('\r\n')
+        replace_text = blocks[i].split('====')[1].split('>>>>')[0].strip('\r\n')
+        
+        filepath = os.path.join(repo_path, current_file)
         
         if not os.path.exists(filepath):
-            # Try stripping leading slashes or looking for the file
+            # Try finding the file recursively
             for root, _, files in os.walk(repo_path):
-                if filename.split('/')[-1] in files:
-                    filepath = os.path.join(root, filename.split('/')[-1])
+                if current_file.split('/')[-1] in files:
+                    filepath = os.path.join(root, current_file.split('/')[-1])
                     break
                     
         if os.path.exists(filepath):
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
                 
-            # Fix Line-Ending Issue (Windows \r\n vs Linux \n)
             content = content.replace('\r\n', '\n')
-            search_block = search_block.replace('\r\n', '\n').strip()
-            replace_block = replace_block.replace('\r\n', '\n').strip()
+            search_text = search_text.replace('\r\n', '\n')
+            replace_text = replace_text.replace('\r\n', '\n')
             
-            # Simple fallback replacement
-            if search_block in content:
-                # Replace only ONE occurrence to prevent duplication if the AI provides a non-unique block
-                content = content.replace(search_block, replace_block, 1)
-            else:
-                pass 
-                
-            with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
-                f.write(content)
+            if search_text in content:
+                content = content.replace(search_text, replace_text, 1)
+                with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
+                    f.write(content)
 
 def coder_node(state: AgentState):
     llm = get_llm()
