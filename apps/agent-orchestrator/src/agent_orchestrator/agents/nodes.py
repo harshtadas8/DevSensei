@@ -13,8 +13,8 @@ set_llm_cache(InMemoryCache())
 # Helper to get the LLM (Supports Groq for free tier, Gemini as fallback)
 def get_llm():
     if os.environ.get("GROQ_API_KEY"):
-        # Switched to Mixtral to avoid all the decommissioned Llama models
-        return ChatGroq(temperature=0, model_name="mixtral-8x7b-32768", max_retries=10, request_timeout=60) 
+        # Switched to llama-3.1-8b-instant because it was explicitly in the UI screenshot
+        return ChatGroq(temperature=0, model_name="llama-3.1-8b-instant", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
         return ChatGoogleGenerativeAI(model="gemini-2.5-pro")
         
