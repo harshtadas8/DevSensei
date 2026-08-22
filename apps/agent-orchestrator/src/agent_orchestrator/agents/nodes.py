@@ -16,7 +16,7 @@ def get_llm():
         # Reverting back to the 120B model (waiting for rate limits to reset)
         return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
-        return ChatGoogleGenerativeAI(model="gemini-2.5-pro")
+        return ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
         
     # Dummy LLM fallback for safe local testing without API keys
     class DummyLLM:
