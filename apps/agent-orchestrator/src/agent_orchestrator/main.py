@@ -318,7 +318,8 @@ async def autofix_code(request: FixRequest):
         logger.error("fix_error", error=str(e))
         return {"error": str(e)}
 
-logger.warning("GITHUB_TOKEN_not_set_printing_to_console")
+if not os.environ.get("GITHUB_TOKEN"):
+    logger.warning("GITHUB_TOKEN_not_set_printing_to_console")
 
 @app.post("/api/github/webhook")
 async def github_webhook(request: Request, background_tasks: BackgroundTasks):
