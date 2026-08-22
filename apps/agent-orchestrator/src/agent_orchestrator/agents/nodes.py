@@ -110,27 +110,9 @@ def synthesizer_node(state: AgentState):
 def apply_search_replace(repo_path: str, llm_output: str):
     import re, os
     
-    # Simple parser for Aider-style search/replace blocks
-    # Format expected:
-    # filename.ext
-    # <<<<
-    # old code
-    # ====
-    # new code
-    # >>>>
+    # Fix common LLM hallucination where it puts >>>> before ====
+    llm_output = re.sub(r'>>>>\s*====', '====', llm_output)
     
-    blocks = re.split(r'<<<<', llm_output)
-    if len(blocks) < 2:
-        return # No blocks found
-        
-    for block in blocks[1:]:
-        try:
-            # Find the filename which should be right before the <<<<
-            # We can just look for the last line of the previous block
-            pass # We'll do a better regex extraction
-        except Exception:
-            continue
-
     # Better extraction approach using regex
     pattern = re.compile(r'([a-zA-Z0-9_\-\./]+)\s*<<<<\s*(.*?)\s*====\s*(.*?)\s*>>>>', re.DOTALL)
     matches = pattern.findall(llm_output)
