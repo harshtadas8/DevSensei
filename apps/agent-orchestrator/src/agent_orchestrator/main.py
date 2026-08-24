@@ -115,18 +115,29 @@ async def analyze_code(request: AnalysisRequest):
 async def get_file_content(path: str):
     """
     Phase 6: Code Viewer Endpoint
-    Returns the content of a file for the UI to display.
-    In a real app, this would use MCP. For this MVP, we read locally.
+    Returns the content of a file for the UI to display using the MCP Server.
     """
     try:
-        # Very basic path traversal protection for demo
-        safe_path = os.path.abspath(path)
-        if not os.path.exists(safe_path):
-            raise HTTPException(status_code=404, detail="File not found")
-            
-        with open(safe_path, "r", encoding="utf-8") as f:
-            content = f.read()
-            
+        from .mcp_client import DevSenseiMCPClient
+        import os
+        
+        # Determine the correct path to the mcp server script
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        mcp_script = os.path.join(base_dir, "mcp-server", "src", "mcp_server", "server.py")
+        
+        mcp_client = DevSenseiMCPClient(server_script_path=mcp_script)
+        await mcp_client.connect()
+        
+        # Use MCP to read the file!
+        result = await mcp_client.call_tool("read_file_chunk", {
+            "path": path,
+            "start_line": 1,
+            "end_line": 10000
+        })
+        
+        await mcp_client.cleanup()
+        
+        content = result.content[0].text if result.content else "Error reading file."
         return {"path": path, "content": content}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -141,17 +152,32 @@ class ChatRequest(BaseModel):
 async def chat_with_repo(request: ChatRequest):
     """
     Phase 9 (Option B): Interactive Chat Interface
-    Answers user questions about the repository using RAG.
+    Answers user questions about the repository using both RAG and MCP tools.
     """
     logger.info("chat_query_received", query=request.query)
     
     try:
         from .ingestion.indexer import retrieve_context
-        # Retrieve the most relevant 3 chunks from ChromaDB
+        # 1. Retrieve semantic context from ChromaDB
         context = await asyncio.to_thread(retrieve_context, request.query, 3)
         
+        # 2. Retrieve exact syntax matches via MCP Server
+        from .mcp_client import DevSenseiMCPClient
+        import os
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        mcp_script = os.path.join(base_dir, "mcp-server", "src", "mcp_server", "server.py")
+        
+        mcp_client = DevSenseiMCPClient(server_script_path=mcp_script)
+        await mcp_client.connect()
+        mcp_result = await mcp_client.call_tool("search_code", {
+            "query": request.query,
+            "path": request.repo_path
+        })
+        await mcp_client.cleanup()
+        exact_matches = mcp_result.content[0].text if mcp_result.content else "No exact matches."
+        
         if not context.strip():
-            context = "No relevant code found in the repository."
+            context = "No semantic context found in the repository."
 
         from .agents.nodes import get_llm
         from langchain_core.messages import SystemMessage, HumanMessage
@@ -165,8 +191,10 @@ async def chat_with_repo(request: ChatRequest):
             "Below is the relevant code from their repository based on their question.\n"
             "Read it carefully and provide a helpful, concise, and accurate answer.\n"
             "If they ask you to write code, provide the exact code block.\n\n"
-            "=== RETRIEVED REPOSITORY CONTEXT ===\n"
+            "=== RETRIEVED SEMANTIC CONTEXT (CHROMA) ===\n"
             f"{context}\n"
+            "=== EXACT SYNTAX MATCHES (MCP SERVER) ===\n"
+            f"{exact_matches}\n"
             "===================================\n"
         )
         
