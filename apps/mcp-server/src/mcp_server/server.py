@@ -18,7 +18,6 @@ from mcp.types import (
 )
 
 # External libs
-import git
 import tree_sitter_python as tspython
 from tree_sitter import Language, Parser
 
@@ -197,12 +196,14 @@ async def call_tool(*args, **kwargs) -> CallToolResult:
             return CallToolResult(content=[TextContent(type="text", text="\n".join(matches[:100]) or "No matches found.")])
 
         elif name == "get_git_diff":
+            import git
             repo_path = tool_args.get("repo_path")
             repo = git.Repo(repo_path)
             diff = repo.git.diff()
             return CallToolResult(content=[TextContent(type="text", text=diff if diff else "No uncommitted changes.")])
 
         elif name == "get_file_history":
+            import git
             repo_path = tool_args.get("repo_path")
             file_path = tool_args.get("file_path")
             repo = git.Repo(repo_path)
