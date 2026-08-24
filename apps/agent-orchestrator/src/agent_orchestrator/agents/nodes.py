@@ -59,7 +59,7 @@ def code_reviewer_node(state: AgentState):
         f"{rules_prompt}"
     ))
     response = llm.invoke([prompt] + list(messages))
-    import time; time.sleep(10)
+    
     return {"reviewer_notes": _get_text(response), "current_agent": "reviewer"}
 
 def architecture_node(state: AgentState):
@@ -75,7 +75,7 @@ def architecture_node(state: AgentState):
         "3. Provide ONLY the mermaid code block. Do not output any conversational text or explanation."
     ))
     response = llm.invoke([prompt] + list(messages))
-    import time; time.sleep(10)
+    
     return {"architect_notes": _get_text(response), "current_agent": "architect"}
 
 def tester_node(state: AgentState):
@@ -94,7 +94,7 @@ def tester_node(state: AgentState):
         f"{rules_prompt}"
     ))
     response = llm.invoke([prompt] + list(messages))
-    import time; time.sleep(10)
+    
     return {"tester_notes": _get_text(response), "current_agent": "tester"}
 
 def synthesizer_node(state: AgentState):
@@ -112,7 +112,7 @@ def synthesizer_node(state: AgentState):
     ))
     user_msg = HumanMessage(content=f"Reviewer:\n{reviewer}\n\nArchitect:\n(Mermaid diagram generated)\n\nTester:\n{tester}")
     response = llm.invoke([prompt, user_msg])
-    import time; time.sleep(10)
+    
     return {"final_report": _get_text(response), "current_agent": "synthesizer", "messages": [response]}
 
 def apply_search_replace(repo_path: str, llm_output: str):
