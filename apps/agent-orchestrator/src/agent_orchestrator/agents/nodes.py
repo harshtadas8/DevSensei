@@ -139,11 +139,13 @@ def apply_search_replace(repo_path: str, llm_output: str):
         if not current_file:
             continue
             
-        if '====' not in blocks[i] or '>>>>' not in blocks[i]:
+        # Check for at least 4 equals signs
+        if not re.search(r'={4,}', blocks[i]) or '>>>>' not in blocks[i]:
             continue
             
-        search_text = blocks[i].split('====')[0].strip('\r\n')
-        replace_text = blocks[i].split('====')[1].split('>>>>')[0].strip('\r\n')
+        parts = re.split(r'={4,}', blocks[i], maxsplit=1)
+        search_text = parts[0].strip('\r\n')
+        replace_text = parts[1].split('>>>>')[0].strip('\r\n')
         
         filepath = os.path.join(repo_path, current_file)
         
