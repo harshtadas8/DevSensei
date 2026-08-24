@@ -249,6 +249,9 @@ def coder_node(state: AgentState):
                             with urllib.request.urlopen(req) as response:
                                 pr_response = json.loads(response.read().decode())
                                 pr_url = pr_response.get("html_url", "")
+                    except urllib.error.HTTPError as pr_err:
+                        error_body = pr_err.read().decode()
+                        diff_output += f"\n\n[Warning: Failed to automatically open GitHub PR. HTTP {pr_err.code}: {error_body}]"
                     except Exception as pr_err:
                         diff_output += f"\n\n[Warning: Failed to automatically open GitHub PR: {str(pr_err)}]"
                 
