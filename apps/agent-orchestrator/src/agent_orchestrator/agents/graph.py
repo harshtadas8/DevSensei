@@ -37,7 +37,7 @@ def build_graph():
         "Synthesizer": "Synthesizer"
     })
     
-    workflow.add_edge("Coder", "Synthesizer") # After fixing, finish up
+    workflow.add_edge("Coder", END) # After fixing, we are completely done. Show the PR link!
     workflow.add_edge("Synthesizer", END)
     
     # Compile graph
