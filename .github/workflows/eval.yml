@@ -20,7 +20,7 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install langchain langchain_core pydantic
+          pip install langchain langchain_core pydantic langgraph langchain-google-genai langchain-groq chromadb
 
       - name: Run Eval Scorer
         run: |
