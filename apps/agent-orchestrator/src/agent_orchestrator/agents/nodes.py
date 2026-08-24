@@ -185,7 +185,8 @@ def coder_node(state: AgentState):
         "====\n"
         "  countp1 += 1;\n"
         ">>>>\n\n"
-        "CRITICAL LIMITATION: The search block (<<<<) MUST be completely unique! You MUST include at least 3-4 lines of unchanged context above and below the edit so it doesn't accidentally match multiple places in the file."
+        "CRITICAL LIMITATION 1: The search block (<<<<) MUST be completely unique! Include 3-4 lines of unchanged context above and below the edit.\n"
+        "CRITICAL LIMITATION 2: DO NOT USE DIFF MARKERS! Never use '+' or '-' at the start of lines. The text inside <<<< MUST exactly match the file byte-for-byte."
     ))
     
     coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
