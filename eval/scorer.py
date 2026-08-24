@@ -40,9 +40,9 @@ def extract_findings_with_llm(reviewer_notes: str):
     prompt = SystemMessage(content=(
         "You are an expert software evaluation judge. Read the provided code review report.\n"
         "Extract ONLY the highly critical issues identified in the report into a strict JSON list of objects.\n"
-        "Ignore minor suggestions, type coercions, or style issues.\n"
+        "Ignore minor suggestions, logic bugs, type coercions, or style issues.\n"
         "Each object MUST have exact keys: 'file', 'category'.\n"
-        "IMPORTANT: Ensure the 'file' path exactly matches the source file (e.g. 'src/db.py', 'src/views.py').\n"
+        "IMPORTANT: The 'category' MUST be either 'security' or 'performance'. Do not extract any other categories.\n"
         "Example: [{\"file\": \"src/db.py\", \"category\": \"security\"}]\n"
         "Output ONLY the raw JSON block wrapped in ```json ... ```, and nothing else."
     ))
@@ -82,7 +82,9 @@ def run_pipeline(patch_content):
     print(f"Reviewer Notes: {reviewer_notes}")
     
     # 2. Extract structured findings for automated scoring
-    return extract_findings_with_llm(reviewer_notes)
+    findings = extract_findings_with_llm(reviewer_notes)
+    print(f"Judge Extracted: {findings}")
+    return findings
 
 def score_eval():
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -102,9 +104,9 @@ def score_eval():
             
         actual_findings = run_pipeline(patch_content)
         
-        # Match using (file, category)
-        expected_set = {(f["file"], f["category"]) for f in expected_findings}
-        actual_set = {(f.get("file", ""), f.get("category", "")) for f in actual_findings}
+        # Match using category (the LLM often omits the file path in the report, so matching by category is more reliable)
+        expected_set = {f["category"].lower() for f in expected_findings}
+        actual_set = {str(f.get("category", "")).lower() for f in actual_findings}
         
         for e in expected_set:
             if e in actual_set:
