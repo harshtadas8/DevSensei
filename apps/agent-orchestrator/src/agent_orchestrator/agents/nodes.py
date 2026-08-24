@@ -208,7 +208,7 @@ def coder_node(state: AgentState):
                 diff_output = "Edits were generated but the search strings didn't exactly match the file contents, or no files were changed."
             else:
                 # Automate GitHub PR if token is available
-                github_token = os.environ.get("GITHUB_TOKEN")
+                github_token = os.environ.get("GITHUB_TOKEN", "").strip()
                 pr_url = ""
                 
                 if github_token:
