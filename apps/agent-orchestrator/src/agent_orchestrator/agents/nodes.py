@@ -11,28 +11,32 @@ from langchain_core.caches import InMemoryCache
 set_llm_cache(InMemoryCache())
 
 # Helper to get the LLM (Supports Groq for free tier, Gemini as fallback)
+@lru_cache(maxsize=1)
 def get_llm():
     if os.environ.get("GROQ_API_KEY"):
-        # Reverting back to the 120B model (waiting for rate limits to reset)
-        return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=10, request_timeout=60) 
+        return ChatGroq(temperature=0, model_name="llama-3.3-70b-versatile", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
-        return ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
+        return ChatGoogleGenerativeAI(model="gemini-1.5-flash")
         
     # Dummy LLM fallback for safe local testing without API keys (and for CI/CD)
+    class AIMessageMock:
+        def __init__(self, content):
+            self.content = content
+
     class DummyLLM:
         def invoke(self, messages):
             text = " ".join([str(m.content) for m in messages])
-            # If this is the Code Reviewer parsing the diff:
-            if "Review this diff" in text:
+            # If this is the Code Reviewer parsing the diff or general review prompt:
+            if "Review this diff" in text or "Reviewer prompt" in text or "Reviewer" in text:
                 if "SELECT * FROM users WHERE username = '{username}'" in text:
-                    return HumanMessage(content="# Security & Logic Review\n* **CRITICAL**: SQL Injection found.")
+                    return AIMessageMock(content="# Security & Logic Review\n* **CRITICAL**: SQL Injection found.")
                 elif "posts.extend(detailed_posts)" in text:
-                    return HumanMessage(content="# Security & Logic Review\n* **CRITICAL**: N+1 query found.")
+                    return AIMessageMock(content="# Security & Logic Review\n* **CRITICAL**: N+1 query found.")
                 else:
-                    return HumanMessage(content="# Security & Logic Review\nEverything looks good.")
+                    return AIMessageMock(content="# Security & Logic Review\nEverything looks good.")
             
             if "Architecture" in text or "Mermaid" in text:
-                return HumanMessage(content="""```mermaid
+                return AIMessageMock(content="""```mermaid
 graph TD
     A[Next.js Frontend] -->|REST| B(FastAPI Orchestrator)
     B --> C{LangGraph Agents}
@@ -41,7 +45,7 @@ graph TD
     C -->|Embeddings| F[(ChromaDB)]
 ```
 [LLM Mock] Architectural diagram generated. Add an API key for real diagrams!""")
-            return HumanMessage(content="[LLM Mock] Analysis complete. Add an API key to your .env to see real insights!")
+            return AIMessageMock(content="[LLM Mock] Analysis complete. Add an API key to your .env to see real insights!")
     return DummyLLM()
 
 def _get_text(response):
@@ -91,7 +95,8 @@ def tester_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
     custom_rules = state.get('custom_rules', "")
-    rules_prompt = f"\n\nCRITICAL TEAM RULES TO ENFORCE:\n{custom_rules}\n(Ensure any test suggestions comply with these rules.)\n" if custom_rules else ""
+    sanitized_rules = custom_rules.replace("```", "").strip() if custom_rules else ""
+    rules_prompt = f"\n\nCRITICAL TEAM RULES TO ENFORCE:\n---\n{sanitized_rules}\n---\n(Ensure any test suggestions comply with these rules.)\n" if sanitized_rules else ""
 
     prompt = SystemMessage(content=(
         "You are the DevSensei Test Generator. "

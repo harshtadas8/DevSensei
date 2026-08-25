@@ -14,7 +14,7 @@ def test_dummy_llm_responses():
     assert "```mermaid" in resp.content
     
     # Test reviewer response
-    resp = llm.invoke([HumanMessage(content="Reviewer prompt")])
+    resp = llm.invoke([HumanMessage(content="Reviewer prompt: Please review this code.")])
     assert "Security & Logic Review" in resp.content
 
 def test_planner_node_state_update():
