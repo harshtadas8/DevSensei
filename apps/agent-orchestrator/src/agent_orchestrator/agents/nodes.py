@@ -21,7 +21,7 @@ def get_llm():
     # Dummy LLM fallback for safe local testing without API keys (and for CI/CD)
     class DummyLLM:
         def invoke(self, messages):
-            text = str(messages[0].content)
+            text = " ".join([str(m.content) for m in messages])
             # If this is the Code Reviewer parsing the diff:
             if "Review this diff" in text:
                 if "SELECT * FROM users WHERE username = '{username}'" in text:
