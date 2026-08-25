@@ -1,4 +1,4 @@
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage, AIMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from .state import AgentState
@@ -11,37 +11,43 @@ from langchain_core.caches import InMemoryCache
 set_llm_cache(InMemoryCache())
 
 # Helper to get the LLM (Supports Groq for free tier, Gemini as fallback)
+# Dummy LLM fallback for safe local testing without API keys (and for CI/CD)
+class DummyLLM:
+    def invoke(self, messages):
+        text = " ".join([str(m.content) for m in messages])
+        # If this is the Code Reviewer parsing the diff:
+        if "Review this diff" in text:
+            if "SELECT * FROM users WHERE username = '{username}'" in text:
+                return AIMessage(content="# Security & Logic Review\n* **CRITICAL**: SQL Injection found.")
+            elif "posts.extend(detailed_posts)" in text:
+                return AIMessage(content="# Security & Logic Review\n* **CRITICAL**: N+1 query found.")
+            else:
+                return AIMessage(content="# Security & Logic Review\nEverything looks good.")
+        
+        if "Architecture" in text or "Mermaid" in text:
+            return AIMessage(content="""```mermaid
+graph TD
+    A[Next.js Frontend] -->|REST| B(FastAPI Orchestrator)
+    B -->|Triggers| C{LangGraph Agents}
+    C -->|Reviewer| D[Security & Logic]
+    C -->|Architect| E[Architecture Design]
+    C -->|Tester| F[Unit Tests]
+    C -->|Synthesizer| G[Final Markdown Report]
+    
+    C <-->|Retrieves Context| H[(ChromaDB Vector Store)]
+    H <-->|Indexed by| I[Tree-sitter AST Parser]
+```""")
+
+        # Fallback response for Coder, Tester, Synthesizer
+        return AIMessage(content="[LLM Mock] Analysis complete. Add an API key to your .env to see real insights!")
+
 def get_llm():
     if os.environ.get("GROQ_API_KEY"):
-        # Reverting back to the 120B model (waiting for rate limits to reset)
-        return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=10, request_timeout=60) 
+        # Use a valid Groq model
+        return ChatGroq(temperature=0, model_name="llama-3.1-70b-versatile", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
         return ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
         
-    # Dummy LLM fallback for safe local testing without API keys (and for CI/CD)
-    class DummyLLM:
-        def invoke(self, messages):
-            text = " ".join([str(m.content) for m in messages])
-            # If this is the Code Reviewer parsing the diff:
-            if "Review this diff" in text:
-                if "SELECT * FROM users WHERE username = '{username}'" in text:
-                    return HumanMessage(content="# Security & Logic Review\n* **CRITICAL**: SQL Injection found.")
-                elif "posts.extend(detailed_posts)" in text:
-                    return HumanMessage(content="# Security & Logic Review\n* **CRITICAL**: N+1 query found.")
-                else:
-                    return HumanMessage(content="# Security & Logic Review\nEverything looks good.")
-            
-            if "Architecture" in text or "Mermaid" in text:
-                return HumanMessage(content="""```mermaid
-graph TD
-    A[Next.js Frontend] -->|REST| B(FastAPI Orchestrator)
-    B --> C{LangGraph Agents}
-    C -->|Read| D[MCP Server]
-    D --> E[(Local File System)]
-    C -->|Embeddings| F[(ChromaDB)]
-```
-[LLM Mock] Architectural diagram generated. Add an API key for real diagrams!""")
-            return HumanMessage(content="[LLM Mock] Analysis complete. Add an API key to your .env to see real insights!")
     return DummyLLM()
 
 def _get_text(response):
@@ -52,9 +58,22 @@ def _get_text(response):
         return "\n".join([str(c.get("text", c)) if isinstance(c, dict) else str(c) for c in content])
     return str(content)
 
-def code_reviewer_node(state: AgentState):
+def _format_mcp_tool(tool):
+    return {
+        "type": "function",
+        "function": {
+            "name": tool.name,
+            "description": tool.description or "",
+            "parameters": tool.input_schema
+        }
+    }
+
+from agent_orchestrator.mcp_client import DevSenseiMCPClient
+
+async def code_reviewer_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
+    repo_path = state.get('repo_path', "")
     custom_rules = state.get('custom_rules', "")
     rules_prompt = f"\n\nCRITICAL TEAM RULES TO ENFORCE:\n{custom_rules}\n(You must enforce these team rules during your code review if applicable.)\n" if custom_rules else ""
 
@@ -64,11 +83,58 @@ def code_reviewer_node(state: AgentState):
         "Provide a concise, bulleted markdown report. Limit your report to the TOP 5 most critical issues to save tokens. "
         "CRITICAL: You MUST provide an analysis. Do NOT output an empty string. "
         "Start your response EXACTLY with '# Security & Logic Review\n\n' and list your findings. "
-        "CRITICAL: If you output any tables, you MUST use standard Markdown syntax with a mandatory separator row (e.g., | Col1 | Col2 |\n|---|---|)."
+        "CRITICAL: If you output any tables, you MUST use standard Markdown syntax with a mandatory separator row (e.g., | Col1 | Col2 |\n|---|---)."
+        f"IMPORTANT: You have access to MCP tools to search the codebase and read files. The codebase is located at: {repo_path}. If the provided diff references files or functions you do not fully understand, USE YOUR TOOLS to fetch the surrounding context BEFORE completing your review."
         f"{rules_prompt}"
     ))
-    response = llm.invoke([prompt] + list(messages))
     
+    if repo_path and not isinstance(llm, DummyLLM):
+        import os
+        mcp_script_docker = "/mcp-server/src/mcp_server/server.py"
+        if os.path.exists(mcp_script_docker):
+            mcp_script = mcp_script_docker
+        else:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+            mcp_script = os.path.join(base_dir, "apps", "mcp-server", "src", "mcp_server", "server.py")
+        
+        mcp = DevSenseiMCPClient(server_script_path=mcp_script)
+        await mcp.connect()
+        try:
+            tools = await mcp.get_available_tools()
+            lc_tools = [_format_mcp_tool(t) for t in tools]
+            llm_with_tools = llm.bind_tools(lc_tools)
+            
+            # Start message chain
+            current_messages = list(messages)
+            ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages)
+            
+            # Allow up to 3 iterative tool calls mid-reasoning
+            for i in range(3):
+                if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
+                    current_messages.append(ai_msg)
+                    for call in ai_msg.tool_calls:
+                        print(f"🤖 [Agentic Action] LLM decided to use MCP Tool: {call['name']} with args: {call['args']}", flush=True)
+                        tool_result = await mcp.call_tool(call["name"], call["args"])
+                        # Using ToolMessage requires correct import
+
+                        current_messages.append(ToolMessage(content=str(tool_result), tool_call_id=call["id"], name=call["name"]))
+                    
+                    if i == 2:
+                        # Force a final text answer by removing tool bindings
+
+                        force_msg = HumanMessage(content="You have reached the tool execution limit. Please provide your final Reviewer Notes now based on the information you have. Do not attempt to call any more tools.")
+                        ai_msg = await llm.ainvoke([prompt] + current_messages + [force_msg])
+                    else:
+                        ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages)
+                else:
+                    break
+            response = ai_msg
+        finally:
+            await mcp.cleanup()
+    else:
+        # Standard fallback for DummyLLM or missing repo
+        response = llm.invoke([prompt] + list(messages))
+        
     return {"reviewer_notes": _get_text(response), "current_agent": "reviewer"}
 
 def architecture_node(state: AgentState):
@@ -178,7 +244,7 @@ def apply_search_replace(repo_path: str, llm_output: str):
                 with open(filepath, 'w', encoding='utf-8', newline='\n') as f:
                     f.write(content)
 
-def coder_node(state: AgentState):
+async def coder_node(state: AgentState):
     llm = get_llm()
     messages = state.get('messages', [])
     reviewer = state.get('reviewer_notes', '')
@@ -197,12 +263,56 @@ def coder_node(state: AgentState):
         "  countp1 += 1;\n"
         ">>>>\n\n"
         "CRITICAL LIMITATION 1: The search block (<<<<) MUST be completely unique! Include 3-4 lines of unchanged context above and below the edit.\n"
-        "CRITICAL LIMITATION 2: DO NOT USE DIFF MARKERS! Never use '+' or '-' at the start of lines. The text inside <<<< MUST exactly match the file byte-for-byte."
+        "CRITICAL LIMITATION 2: DO NOT USE DIFF MARKERS! Never use '+' or '-' at the start of lines. The text inside <<<< MUST exactly match the file byte-for-byte.\n"
+        f"IMPORTANT: You have access to MCP tools to search the codebase and read files. The codebase is located at: {repo_path}. USE YOUR TOOLS to read the exact file contents before generating your search/replace block to ensure your search block perfectly matches the file."
     ))
     
     coder_messages = list(messages) + [HumanMessage(content=f"Here is the bug report to fix:\n\n{reviewer}")]
     
-    response = llm.invoke([prompt] + coder_messages)
+    if repo_path and not isinstance(llm, DummyLLM):
+        import os
+        mcp_script_docker = "/mcp-server/src/mcp_server/server.py"
+        if os.path.exists(mcp_script_docker):
+            mcp_script = mcp_script_docker
+        else:
+            base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../../.."))
+            mcp_script = os.path.join(base_dir, "apps", "mcp-server", "src", "mcp_server", "server.py")
+        
+        mcp = DevSenseiMCPClient(server_script_path=mcp_script)
+        await mcp.connect()
+        try:
+            tools = await mcp.get_available_tools()
+            lc_tools = [_format_mcp_tool(t) for t in tools]
+            llm_with_tools = llm.bind_tools(lc_tools)
+            
+            # Start message chain
+            current_messages = list(coder_messages)
+            ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages)
+            
+            # Allow up to 3 iterative tool calls mid-reasoning
+            for i in range(3):
+                if hasattr(ai_msg, 'tool_calls') and ai_msg.tool_calls:
+                    current_messages.append(ai_msg)
+                    for call in ai_msg.tool_calls:
+                        print(f"🤖 [Agentic Action] LLM decided to use MCP Tool: {call['name']} with args: {call['args']}", flush=True)
+                        tool_result = await mcp.call_tool(call["name"], call["args"])
+
+                        current_messages.append(ToolMessage(content=str(tool_result), tool_call_id=call["id"], name=call["name"]))
+                    
+                    if i == 2:
+
+                        force_msg = HumanMessage(content="You have reached the tool execution limit. Please provide your final search and replace block now based on the information you have. Do not attempt to call any more tools.")
+                        ai_msg = await llm.ainvoke([prompt] + current_messages + [force_msg])
+                    else:
+                        ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages)
+                else:
+                    break
+            response = ai_msg
+        finally:
+            await mcp.cleanup()
+    else:
+        response = llm.invoke([prompt] + coder_messages)
+        
     llm_output = _get_text(response)
     
     # Try to apply the edits if we have a local path

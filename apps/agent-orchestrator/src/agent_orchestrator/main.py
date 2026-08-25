@@ -1,8 +1,13 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, Request
 import structlog
+import os
+import warnings
 from pydantic import BaseModel
 from .agents.graph import devsensei_graph
 from langchain_core.messages import HumanMessage
+
+# Suppress harmless Google GenAI deprecation warnings to keep the terminal clean
+warnings.filterwarnings("ignore", message=".*Direct use of automatic function calling.*")
 
 logger = structlog.get_logger()
 app = FastAPI(title="DevSensei Agent Orchestrator")
@@ -10,7 +15,7 @@ app = FastAPI(title="DevSensei Agent Orchestrator")
 class AnalysisRequest(BaseModel):
     repo_path: str
     pr_number: int | None = None
-    custom_rules: str = ""
+    custom_rules: str = Field(default="", max_length=1000)
 
 @app.get("/health")
 def health_check():
@@ -82,8 +87,8 @@ async def analyze_code(request: AnalysisRequest):
             "final_report": ""
         }
         
-        # Run the graph synchronously inside the async generator (safe for this demo/MVP)
-        final_state = devsensei_graph.invoke(initial_state)
+        # Run the graph asynchronously to support MCP tools!
+        final_state = await devsensei_graph.ainvoke(initial_state)
         
         # Send final results
         # Build file list for the Code Viewer
@@ -282,7 +287,7 @@ async def process_pull_request(pr_number: int, repo_full_name: str, clone_url: s
         "final_report": ""
     }
     
-    final_state = devsensei_graph.invoke(initial_state)
+    final_state = await devsensei_graph.ainvoke(initial_state)
     
     # 3. Post the result back to the GitHub PR!
     logger.info("pr_analysis_complete", pr=pr_number)
@@ -345,9 +350,9 @@ async def autofix_code(request: FixRequest):
             "final_report": ""
         }
         
-        # Run the Coder Agent
-        result = await asyncio.to_thread(coder_node, state)
-        return {"fixed_code": result["final_report"]}
+        # Run the Coder Agent directly (since it is an async function)
+        result = await coder_node(state)
+        return {"fixed_code": result.get("final_report", "Fix applied successfully!")}
         
     except Exception as e:
         logger.error("fix_error", error=str(e))

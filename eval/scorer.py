@@ -75,8 +75,9 @@ def run_pipeline(patch_content):
         "custom_rules": ""
     }
     
-    # 1. Execute the actual graph
-    final_state = devsensei_graph.invoke(initial_state)
+    print("=> Invoking real LangGraph on patch...")
+    import asyncio
+    final_state = asyncio.run(devsensei_graph.ainvoke(initial_state))
     reviewer_notes = final_state.get("reviewer_notes", "")
     
     print(f"Reviewer Notes: {reviewer_notes}")
