@@ -2,7 +2,7 @@ from fastapi import FastAPI, BackgroundTasks, Request
 import structlog
 import os
 import warnings
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from .agents.graph import devsensei_graph
 from langchain_core.messages import HumanMessage
 
