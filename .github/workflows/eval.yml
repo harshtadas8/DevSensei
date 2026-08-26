@@ -20,7 +20,13 @@ jobs:
           
       - name: Install dependencies
         run: |
-          pip install langchain langchain_core pydantic langgraph langchain-google-genai langchain-groq chromadb
+          pip install uv
+          uv pip install --system -e apps/agent-orchestrator
+          uv pip install --system pytest
+
+      - name: Run Unit Tests
+        run: |
+          pytest apps/agent-orchestrator/tests/
 
       - name: Run Eval Scorer
         run: |

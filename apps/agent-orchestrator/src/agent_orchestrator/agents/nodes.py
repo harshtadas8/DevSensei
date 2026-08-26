@@ -44,7 +44,7 @@ graph TD
 def get_llm():
     if os.environ.get("GROQ_API_KEY"):
         # Use a valid Groq model
-        return ChatGroq(temperature=0, model_name="llama-3.1-70b-versatile", max_retries=10, request_timeout=60) 
+        return ChatGroq(temperature=0, model_name="openai/gpt-oss-120b", max_retries=10, request_timeout=60) 
     elif os.environ.get("GOOGLE_API_KEY"):
         return ChatGoogleGenerativeAI(model="gemini-3.5-flash-lite")
         
