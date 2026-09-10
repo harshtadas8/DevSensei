@@ -18,6 +18,7 @@ class AnalysisRequest(BaseModel):
     custom_rules: str = Field(default="", max_length=1000)
 
 @app.get("/health")
+@app.head("/health")
 def health_check():
     logger.info("health_check_called", status="ok")
     return {"status": "ok"}
