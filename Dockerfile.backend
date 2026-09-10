@@ -1,0 +1,25 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies (git)
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# --- INSTALL MCP SERVER ---
+# Copy the MCP server into /mcp-server so it matches the hardcoded path
+COPY apps/mcp-server/ /mcp-server/
+RUN cd /mcp-server && uv pip install --system -e .
+
+# --- INSTALL ORCHESTRATOR ---
+# Copy orchestrator files
+COPY apps/agent-orchestrator/pyproject.toml apps/agent-orchestrator/README.md ./
+COPY apps/agent-orchestrator/src/ ./src/
+
+# Install dependencies using uv
+RUN uv pip install --system -e .
+
+# Run the FastAPI app
+CMD ["uvicorn", "src.agent_orchestrator.main:app", "--host", "0.0.0.0", "--port", "8000"]
