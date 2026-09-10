@@ -25,7 +25,7 @@ const MermaidDiagram = ({ chart }: { chart: string }) => {
 };
 
 export default function Home() {
-  const [targetPath, setTargetPath] = useState(".");
+  const [targetPath, setTargetPath] = useState("");
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [results, setResults] = useState<any>(null);
