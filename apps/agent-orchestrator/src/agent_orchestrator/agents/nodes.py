@@ -300,9 +300,8 @@ async def coder_node(state: AgentState):
                         current_messages.append(ToolMessage(content=str(tool_result), tool_call_id=call["id"], name=call["name"]))
                     
                     if i == 2:
-
-                        force_msg = HumanMessage(content="You have reached the tool execution limit. Please provide your final search and replace block now based on the information you have. Do not attempt to call any more tools.")
-                        ai_msg = await llm.ainvoke([prompt] + current_messages + [force_msg])
+                        force_msg = HumanMessage(content="You have reached the tool execution limit. Please provide your final search and replace block now based on the information you have. Do not attempt to call any more tools. You MUST output plain text.")
+                        ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages + [force_msg])
                     else:
                         ai_msg = await llm_with_tools.ainvoke([prompt] + current_messages)
                 else:
